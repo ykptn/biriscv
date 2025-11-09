@@ -64,9 +64,12 @@ always @(posedge clk) begin
                 cycle_count, u_dut.u_mulf.state_q,
                 u_dut.u_mulf.a_q, u_dut.u_mulf.b_q,
                 u_dut.u_mulf.mult_a_in_w, u_dut.u_mulf.mult_b_in_w, u_dut.u_mulf.mult_out_w);
-            $display("              p0=%0d, p1=%0d, p2=%0d, result=%0d, valid=%b",
+            //$display("              p0=%0d, p1=%0d, p2=%0d, result=%0d, valid=%b",                old
+                //u_dut.u_mulf.p0_q, u_dut.u_mulf.p1_q, u_dut.u_mulf.p2_q,
+                //u_dut.u_mulf.result_r, u_dut.u_mulf.writeback_valid_o);
+            $display("              p0=%0d, p1=%0d, p2=%0d, valid=%b",
                 u_dut.u_mulf.p0_q, u_dut.u_mulf.p1_q, u_dut.u_mulf.p2_q,
-                u_dut.u_mulf.result_r, u_dut.u_mulf.writeback_valid_o);
+                u_dut.u_mulf.writeback_valid_o);
             // Monitor writeback signals to issue stage
             if (u_dut.writeback_mulf_valid_w) begin
                 $display("              WRITEBACK: mulf_valid=%b, mulf_value=%0d",
