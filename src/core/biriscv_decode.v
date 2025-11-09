@@ -65,6 +65,7 @@ module biriscv_decode
     ,output          fetch_out0_instr_csr_o
     ,output          fetch_out0_instr_rd_valid_o
     ,output          fetch_out0_instr_invalid_o
+    ,output          fetch_out0_instr_mulf_o //added for mulf
     ,output          fetch_out1_valid_o
     ,output [ 31:0]  fetch_out1_instr_o
     ,output [ 31:0]  fetch_out1_pc_o
@@ -78,6 +79,7 @@ module biriscv_decode
     ,output          fetch_out1_instr_csr_o
     ,output          fetch_out1_instr_rd_valid_o
     ,output          fetch_out1_instr_invalid_o
+    ,output          fetch_out1_instr_mulf_o //added for mulf
 );
 
 
@@ -117,10 +119,10 @@ begin
 
     assign fetch_in_instr_w = (fetch_in_fault_page_w | fetch_in_fault_fetch_w) ? 64'b0 : fetch_in_instr_raw_w;
 
-    wire [7:0] info0_in_w;
-    wire [9:0] info0_out_w;
-    wire [7:0] info1_in_w;
-    wire [9:0] info1_out_w;
+    wire [8:0] info0_in_w; // <--- CHANGED from [7:0]
+    wire [10:0] info0_out_w; // <--- CHANGED from [9:0]
+    wire [8:0] info1_in_w; // <--- CHANGED from [7:0]
+    wire [10:0] info1_out_w; // <--- CHANGED from [9:0]
 
 
     biriscv_decoder
@@ -138,6 +140,7 @@ begin
         ,.mul_o(info0_in_w[3])
         ,.div_o(info0_in_w[2])
         ,.csr_o(info0_in_w[1])
+        ,.mulf_o(info0_in_w[8])
         ,.rd_valid_o(info0_in_w[0])
     );
 
@@ -156,11 +159,12 @@ begin
         ,.mul_o(info1_in_w[3])
         ,.div_o(info1_in_w[2])
         ,.csr_o(info1_in_w[1])
+        ,.mulf_o(info1_in_w[8])
         ,.rd_valid_o(info1_in_w[0])
     );
 
     fetch_fifo
-    #( .OPC_INFO_W(10) )
+    #( .OPC_INFO_W(11) )
     u_fifo
     (
          .clk_i(clk_i)
@@ -182,9 +186,10 @@ begin
         ,.pc0_out_o(fetch_out0_pc_o)
         ,.data0_out_o(fetch_out0_instr_o)
         ,.info0_out_o({fetch_out0_instr_invalid_o, fetch_out0_instr_exec_o,
-                       fetch_out0_instr_lsu_o,     fetch_out0_instr_branch_o,
-                       fetch_out0_instr_mul_o,     fetch_out0_instr_div_o,
-                       fetch_out0_instr_csr_o,     fetch_out0_instr_rd_valid_o,
+                       fetch_out0_instr_lsu_o,       fetch_out0_instr_branch_o,
+                       fetch_out0_instr_mul_o,       fetch_out0_instr_div_o,
+                       fetch_out0_instr_csr_o,       fetch_out0_instr_mulf_o, // <--- ADD THIS
+                       fetch_out0_instr_rd_valid_o,
                        fetch_out0_fault_page_o,    fetch_out0_fault_fetch_o})
         ,.pop0_i(fetch_out0_accept_i)
 
@@ -192,9 +197,10 @@ begin
         ,.pc1_out_o(fetch_out1_pc_o)
         ,.data1_out_o(fetch_out1_instr_o)
         ,.info1_out_o({fetch_out1_instr_invalid_o, fetch_out1_instr_exec_o,
-                       fetch_out1_instr_lsu_o,     fetch_out1_instr_branch_o,
-                       fetch_out1_instr_mul_o,     fetch_out1_instr_div_o,
-                       fetch_out1_instr_csr_o,     fetch_out1_instr_rd_valid_o,
+                       fetch_out1_instr_lsu_o,       fetch_out1_instr_branch_o,
+                       fetch_out1_instr_mul_o,       fetch_out1_instr_div_o,
+                       fetch_out1_instr_csr_o,       fetch_out1_instr_mulf_o, // <--- ADD THIS
+                       fetch_out1_instr_rd_valid_o,
                        fetch_out1_fault_page_o,    fetch_out1_fault_fetch_o})
         ,.pop1_i(fetch_out1_accept_i)
     );
@@ -251,6 +257,7 @@ begin
         ,.mul_o(fetch_out0_instr_mul_o)
         ,.div_o(fetch_out0_instr_div_o)
         ,.csr_o(fetch_out0_instr_csr_o)
+        ,.mulf_o(fetch_out0_instr_mulf_o) // <--- ADD THIS
         ,.rd_valid_o(fetch_out0_instr_rd_valid_o)
     );
 
@@ -269,6 +276,7 @@ begin
         ,.mul_o(fetch_out1_instr_mul_o)
         ,.div_o(fetch_out1_instr_div_o)
         ,.csr_o(fetch_out1_instr_csr_o)
+        ,.mulf_o(fetch_out1_instr_mulf_o) // <--- ADD THIS
         ,.rd_valid_o(fetch_out1_instr_rd_valid_o)
     );
 end

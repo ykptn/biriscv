@@ -4,7 +4,7 @@
 //                     Ultra-Embedded.com
 //                     Copyright 2019-2020
 //
-//                   admin@ultra-embedded.com
+//                 admin@ultra-embedded.com
 //
 //                     License: Apache 2.0
 //-----------------------------------------------------------------
@@ -45,6 +45,7 @@ module biriscv_pipe_ctrl
     ,input           issue_csr_i
     ,input           issue_div_i
     ,input           issue_mul_i
+    ,input           issue_mulf_i             // <--- MODIFIED
     ,input           issue_branch_i
     ,input           issue_rd_valid_i
     ,input  [4:0]    issue_rd_i
@@ -92,6 +93,8 @@ module biriscv_pipe_ctrl
     // Out of pipe: Divide Result
     ,input           div_complete_i
     ,input  [31:0]   div_result_i
+    ,input           mulf_complete_i        // <--- MODIFIED
+    ,input  [31:0]   mulf_result_i          // <--- MODIFIED
 
     // Commit
     ,output          valid_wb_o
@@ -112,7 +115,6 @@ module biriscv_pipe_ctrl
     ,input           squash_e1_e2_i
     ,input           squash_wb_i
 );
-
 //-------------------------------------------------------------
 // Includes
 //-------------------------------------------------------------
@@ -120,11 +122,10 @@ module biriscv_pipe_ctrl
 
 wire squash_e1_e2_w;
 wire branch_misaligned_w = (issue_branch_taken_i && issue_branch_target_i[1:0] != 2'b0);
-
 //-------------------------------------------------------------
 // E1 / Address
 //------------------------------------------------------------- 
-`define PCINFO_W     10
+`define PCINFO_W     11             // <--- MODIFIED
 `define PCINFO_ALU       0
 `define PCINFO_LOAD      1
 `define PCINFO_STORE     2
@@ -135,6 +136,7 @@ wire branch_misaligned_w = (issue_branch_taken_i && issue_branch_target_i[1:0] !
 `define PCINFO_RD_VALID  7
 `define PCINFO_INTR      8
 `define PCINFO_COMPLETE  9
+`define PCINFO_MULF      10            // <--- MODIFIED
 
 `define RD_IDX_R    11:7
 
@@ -146,7 +148,6 @@ reg [31:0]              opcode_e1_q;
 reg [31:0]              operand_ra_e1_q;
 reg [31:0]              operand_rb_e1_q;
 reg [`EXCEPTION_W-1:0]  exception_e1_q;
-
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
 begin
@@ -165,17 +166,18 @@ else if (issue_stall_i)
 else if ((issue_valid_i && issue_accept_i) && ~(squash_e1_e2_o || squash_e1_e2_i))
 begin
     valid_e1_q                  <= 1'b1;
-    ctrl_e1_q[`PCINFO_ALU]      <= ~(issue_lsu_i | issue_csr_i | issue_div_i | issue_mul_i);
-    ctrl_e1_q[`PCINFO_LOAD]     <= issue_lsu_i &  issue_rd_valid_i & ~take_interrupt_i; // TODO: Check
+    ctrl_e1_q[`PCINFO_ALU]      <= ~(issue_lsu_i | issue_csr_i | issue_div_i | issue_mul_i | issue_mulf_i); // <--- MODIFIED
+    ctrl_e1_q[`PCINFO_LOAD]     <= issue_lsu_i &  issue_rd_valid_i & ~take_interrupt_i;
+    // TODO: Check
     ctrl_e1_q[`PCINFO_STORE]    <= issue_lsu_i & ~issue_rd_valid_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_CSR]      <= issue_csr_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_DIV]      <= issue_div_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_MUL]      <= issue_mul_i & ~take_interrupt_i;
+    ctrl_e1_q[`PCINFO_MULF]     <= issue_mulf_i & ~take_interrupt_i;    // <--- MODIFIED
     ctrl_e1_q[`PCINFO_BRANCH]   <= issue_branch_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_RD_VALID] <= issue_rd_valid_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_INTR]     <= take_interrupt_i;
     ctrl_e1_q[`PCINFO_COMPLETE] <= 1'b1;
-
     pc_e1_q         <= issue_pc_i;
     npc_e1_q        <= issue_branch_taken_i ? issue_branch_target_i : issue_pc_i + 32'd4;
     opcode_e1_q     <= issue_opcode_i;
@@ -224,7 +226,6 @@ reg [31:0]              opcode_e2_q;
 reg [31:0]              operand_ra_e2_q;
 reg [31:0]              operand_rb_e2_q;
 reg [`EXCEPTION_W-1:0]  exception_e2_q;
-
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
 begin
@@ -284,7 +285,9 @@ begin
         exception_e2_q  <= csr_result_exception_e1_i;
 
     if (ctrl_e1_q[`PCINFO_DIV])
-        result_e2_q <= div_result_i; 
+        result_e2_q <= div_result_i;
+    else if (ctrl_e1_q[`PCINFO_MULF])      // <--- MODIFIED
+        result_e2_q <= mulf_result_i;     // <--- MODIFIED
     else if (ctrl_e1_q[`PCINFO_CSR])
         result_e2_q <= csr_result_value_e1_i;
     else
@@ -292,9 +295,7 @@ begin
 end
 
 reg [31:0] result_e2_r;
-
 wire valid_e2_w      = valid_e2_q & ~issue_stall_i;
-
 always @ *
 begin
     // Default: ALU result
@@ -313,7 +314,9 @@ assign rd_e2_o         = {5{(valid_e2_w && ctrl_e2_q[`PCINFO_RD_VALID] && ~stall
 assign result_e2_o     = result_e2_r;
 
 // Load store result not ready when reaching E2
-assign stall_o         = (ctrl_e1_q[`PCINFO_DIV] && ~div_complete_i) || ((ctrl_e2_q[`PCINFO_LOAD] | ctrl_e2_q[`PCINFO_STORE]) & ~mem_complete_i);
+assign stall_o         = (ctrl_e1_q[`PCINFO_DIV] && ~div_complete_i) ||
+                         (ctrl_e1_q[`PCINFO_MULF] && ~mulf_complete_i) ||   // <--- MODIFIED
+                         ((ctrl_e2_q[`PCINFO_LOAD] | ctrl_e2_q[`PCINFO_STORE]) & ~mem_complete_i);
 
 reg [`EXCEPTION_W-1:0] exception_e2_r;
 always @ *
@@ -327,7 +330,6 @@ end
 assign squash_e1_e2_w = |exception_e2_r;
 
 reg squash_e1_e2_q;
-
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     squash_e1_e2_q <= 1'b0;
@@ -335,7 +337,6 @@ else if (~issue_stall_i)
     squash_e1_e2_q <= squash_e1_e2_w;
 
 assign squash_e1_e2_o = squash_e1_e2_w | squash_e1_e2_q;
-
 //-------------------------------------------------------------
 // Writeback / Commit
 //------------------------------------------------------------- 
@@ -350,7 +351,6 @@ reg [31:0]              opcode_wb_q;
 reg [31:0]              operand_ra_wb_q;
 reg [31:0]              operand_rb_wb_q;
 reg [`EXCEPTION_W-1:0]  exception_wb_q;
-
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
 begin
@@ -400,13 +400,11 @@ begin
 
     csr_wr_wb_q     <= csr_wr_e2_q;  // TODO: Fault disable???
     csr_wdata_wb_q  <= csr_wdata_e2_q;
-
     // Exception - squash writeback
     if (|exception_e2_r)
         ctrl_wb_q       <= ctrl_e2_q & ~(1 << `PCINFO_RD_VALID);
     else
         ctrl_wb_q       <= ctrl_e2_q;
-
     pc_wb_q         <= pc_e2_q;
     npc_wb_q        <= npc_e2_q;
     opcode_wb_q     <= opcode_e2_q;
@@ -424,7 +422,6 @@ end
 
 // Instruction completion (for debug)
 wire complete_wb_w     = ctrl_wb_q[`PCINFO_COMPLETE] & ~issue_stall_i;
-
 assign valid_wb_o      = valid_wb_q & ~issue_stall_i;
 assign csr_wb_o        = ctrl_wb_q[`PCINFO_CSR] & ~issue_stall_i; // TODO: Fault disable???
 assign rd_wb_o         = {5{(valid_wb_o && ctrl_wb_q[`PCINFO_RD_VALID] && ~stall_o)}} & opcode_wb_q[`RD_IDX_R];
@@ -433,13 +430,11 @@ assign pc_wb_o         = pc_wb_q;
 assign opcode_wb_o     = opcode_wb_q;
 assign operand_ra_wb_o = operand_ra_wb_q;
 assign operand_rb_wb_o = operand_rb_wb_q;
-
 assign exception_wb_o  = exception_wb_q;
 
 assign csr_write_wb_o  = csr_wr_wb_q;
 assign csr_waddr_wb_o  = opcode_wb_q[31:20];
 assign csr_wdata_wb_o  = csr_wdata_wb_q;
-
 `ifdef verilator
 biriscv_trace_sim
 u_trace_d
@@ -448,7 +443,6 @@ u_trace_d
     ,.pc_i(issue_pc_i)
     ,.opcode_i(issue_opcode_i)
 );
-
 biriscv_trace_sim
 u_trace_wb
 (

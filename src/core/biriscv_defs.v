@@ -232,6 +232,9 @@
 `define INST_MUL 32'h2000033
 `define INST_MUL_MASK 32'hfe00707f
 
+`define INST_MULF_MASK 32'hFE00707F
+`define INST_MULF      32'h0200000B // funct7=1, funct3=0, opcode=custom-0
+
 // mulh
 `define INST_MULH 32'h2001033
 `define INST_MULH_MASK 32'hfe00707f
