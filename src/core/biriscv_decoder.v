@@ -38,6 +38,7 @@ module biriscv_decoder
     ,output                       mul_o
     ,output                       div_o
     ,output                       csr_o
+    ,output                       mulf_o
     ,output                       rd_valid_o
 );
 
@@ -101,7 +102,8 @@ wire invalid_w =    valid_i &&
                     (enable_muldiv_i && (opcode_i & `INST_DIV_MASK) == `INST_DIV)       ||
                     (enable_muldiv_i && (opcode_i & `INST_DIVU_MASK) == `INST_DIVU)     ||
                     (enable_muldiv_i && (opcode_i & `INST_REM_MASK) == `INST_REM)       ||
-                    (enable_muldiv_i && (opcode_i & `INST_REMU_MASK) == `INST_REMU));
+                    (enable_muldiv_i && (opcode_i & `INST_REMU_MASK) == `INST_REMU)    ||
+                    (enable_muldiv_i && (opcode_i & `INST_MULF_MASK) == `INST_MULF));
 
 assign invalid_o = invalid_w;
 
@@ -147,7 +149,8 @@ assign rd_valid_o = ((opcode_i & `INST_JALR_MASK) == `INST_JALR)     ||
                     ((opcode_i & `INST_CSRRC_MASK) == `INST_CSRRC)   ||
                     ((opcode_i & `INST_CSRRWI_MASK) == `INST_CSRRWI) ||
                     ((opcode_i & `INST_CSRRSI_MASK) == `INST_CSRRSI) ||
-                    ((opcode_i & `INST_CSRRCI_MASK) == `INST_CSRRCI);
+                    ((opcode_i & `INST_CSRRCI_MASK) == `INST_CSRRCI) ||
+(enable_muldiv_i && (opcode_i & `INST_MULF_MASK) == `INST_MULF);
 
 assign exec_o =     ((opcode_i & `INST_ANDI_MASK) == `INST_ANDI)  ||
                     ((opcode_i & `INST_ADDI_MASK) == `INST_ADDI)  ||
@@ -216,5 +219,8 @@ assign csr_o =      ((opcode_i & `INST_ECALL_MASK) == `INST_ECALL)            ||
                     ((opcode_i & `INST_IFENCE_MASK) == `INST_IFENCE)          ||
                     ((opcode_i & `INST_SFENCE_MASK) == `INST_SFENCE)          ||
                     invalid_w || fetch_fault_i;
+                    
+assign mulf_o =     enable_muldiv_i && // Good practice to check this
+                    (((opcode_i & `INST_MULF_MASK) == `INST_MULF));            
 
 endmodule

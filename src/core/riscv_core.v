@@ -251,6 +251,24 @@ wire  [  4:0]  lsu_opcode_ra_idx_w;
 wire  [ 31:0]  csr_writeback_exception_pc_w;
 wire           fetch1_instr_mul_w;
 wire           mmu_store_fault_w;
+// --- ADD ALL THESE ---
+wire           fetch0_instr_mulf_w;
+wire           fetch1_instr_mulf_w;
+
+wire           mulf_opcode_valid_w;
+wire  [ 31:0]  mulf_opcode_opcode_w;
+wire  [ 31:0]  mulf_opcode_pc_w;
+wire           mulf_opcode_invalid_w;
+wire  [  4:0]  mulf_opcode_rd_idx_w;
+wire  [  4:0]  mulf_opcode_ra_idx_w;
+wire  [  4:0]  mulf_opcode_rb_idx_w;
+wire  [ 31:0]  mulf_opcode_ra_operand_w;
+wire  [ 31:0]  mulf_opcode_rb_operand_w;
+
+wire           mulf_hold_w;
+wire           writeback_mulf_valid_w;
+wire  [ 31:0]  writeback_mulf_value_w;
+// --- END OF ADDED WIRES ---
 
 
 biriscv_frontend
@@ -326,6 +344,8 @@ u_frontend
     ,.fetch1_instr_csr_o(fetch1_instr_csr_w)
     ,.fetch1_instr_rd_valid_o(fetch1_instr_rd_valid_w)
     ,.fetch1_instr_invalid_o(fetch1_instr_invalid_w)
+    ,.fetch0_instr_mulf_o(fetch0_instr_mulf_w) // <--- ADD THIS
+    ,.fetch1_instr_mulf_o(fetch1_instr_mulf_w) // <--- ADD THIS
 );
 
 
@@ -511,6 +531,28 @@ u_mul
     ,.writeback_value_o(writeback_mul_value_w)
 );
 
+biriscv_multiplier_efficient 
+u_mulf
+(
+    // Inputs
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.opcode_valid_i(mulf_opcode_valid_w)
+    ,.opcode_opcode_i(mulf_opcode_opcode_w)
+    ,.opcode_pc_i(mulf_opcode_pc_w)
+    ,.opcode_invalid_i(mulf_opcode_invalid_w)
+    ,.opcode_rd_idx_i(mulf_opcode_rd_idx_w)
+    ,.opcode_ra_idx_i(mulf_opcode_ra_idx_w)
+    ,.opcode_rb_idx_i(mulf_opcode_rb_idx_w)
+    ,.opcode_ra_operand_i(mulf_opcode_ra_operand_w)
+    ,.opcode_rb_operand_i(mulf_opcode_rb_operand_w)
+    //,.hold_i(mulf_hold_w) // This comes from u_issue
+
+    // Outputs
+    ,.writeback_valid_o(writeback_mulf_valid_w) // Goes to u_issue
+    ,.writeback_value_o(writeback_mulf_value_w) // Goes to u_issue
+);
+
 
 biriscv_divider
 u_div
@@ -560,6 +602,7 @@ u_issue
     ,.fetch0_instr_csr_i(fetch0_instr_csr_w)
     ,.fetch0_instr_rd_valid_i(fetch0_instr_rd_valid_w)
     ,.fetch0_instr_invalid_i(fetch0_instr_invalid_w)
+    ,.fetch0_instr_mulf_i(fetch0_instr_mulf_w) // <--- ADD THIS
     ,.fetch1_valid_i(fetch1_valid_w)
     ,.fetch1_instr_i(fetch1_instr_w)
     ,.fetch1_pc_i(fetch1_pc_w)
@@ -573,6 +616,7 @@ u_issue
     ,.fetch1_instr_csr_i(fetch1_instr_csr_w)
     ,.fetch1_instr_rd_valid_i(fetch1_instr_rd_valid_w)
     ,.fetch1_instr_invalid_i(fetch1_instr_invalid_w)
+    ,.fetch1_instr_mulf_i(fetch1_instr_mulf_w) // <--- ADD THIS
     ,.branch_exec0_request_i(branch_exec0_request_w)
     ,.branch_exec0_is_taken_i(branch_exec0_is_taken_w)
     ,.branch_exec0_is_not_taken_i(branch_exec0_is_not_taken_w)
@@ -606,6 +650,8 @@ u_issue
     ,.writeback_mul_value_i(writeback_mul_value_w)
     ,.writeback_div_valid_i(writeback_div_valid_w)
     ,.writeback_div_value_i(writeback_div_value_w)
+    ,.writeback_mulf_valid_i(writeback_mulf_valid_w) // <--- ADD THIS
+    ,.writeback_mulf_value_i(writeback_mulf_value_w) // <--- ADD THIS
     ,.csr_result_e1_value_i(csr_result_e1_value_w)
     ,.csr_result_e1_write_i(csr_result_e1_write_w)
     ,.csr_result_e1_wdata_i(csr_result_e1_wdata_w)
