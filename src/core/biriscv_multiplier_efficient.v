@@ -38,8 +38,9 @@ localparam [2:0] MULF_STATE_DONE  = 3'd4;
 // Registers / Wires
 //-----------------------------------------------------------------
 reg [  2:0]  state_q;
-reg          valid_r;
-reg [ 31:0]  result_r;
+reg          valid_r, valid_q;   // new
+//reg          valid_r;    old
+//reg [ 31:0]  result_r;   old
 
 // Latched Operands
 reg [ 31:0]  a_q;
@@ -66,6 +67,7 @@ if (rst_i)
 begin
     state_q  <= MULF_STATE_IDLE;
     valid_r  <= 1'b0;
+    valid_q <= 1'b0;      // NEW
     result_r <= 32'b0;
     a_q      <= 32'b0;
     b_q      <= 32'b0;
@@ -111,7 +113,7 @@ begin
     begin
         // Calculate final 32-bit result
         // Result = (A_l*B_l) + (A_l*B_h << 16) + (A_h*B_l << 16)
-        result_r <= p0_q + (p1_q << 16) + (p2_q << 16);
+        // result_r <= p0_q + (p1_q << 16) + (p2_q << 16);   NEW GONE
         
         valid_r <= 1'b1; // Signal completion to issue stage
         state_q <= MULF_STATE_IDLE;
@@ -122,6 +124,7 @@ begin
         state_q <= MULF_STATE_IDLE;
     end
     endcase
+    valid_q <= valid_r; //  NEW
 end
 
 //-----------------------------------------------------------------
@@ -139,8 +142,16 @@ assign mult_b_in_w = (state_q == MULF_STATE_CALC0) ? b_q[15:0] : // B_l
                      (state_q == MULF_STATE_CALC2) ? b_q[15:0] : // B_l
                      16'b0;
 
+// Combinational final product from partials
+wire [31:0] result_w;                            // NEW
+assign result_w = p0_q + (p1_q << 16) + (p2_q << 16);  // NEW
+
+// Outputs
+assign writeback_valid_o = valid_q;              // NEW
+assign writeback_value_o = result_w;             // NEW
+
 // Outputs to issue stage
-assign writeback_valid_o = valid_r;
-assign writeback_value_o = result_r;
+//assign writeback_valid_o = valid_r;   old
+//assign writeback_value_o = result_r;   old
 
 endmodule

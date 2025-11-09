@@ -757,6 +757,9 @@ u_exec0
     ,.opcode_ra_operand_i(opcode0_ra_operand_w)
     ,.opcode_rb_operand_i(opcode0_rb_operand_w)
     ,.hold_i(exec0_hold_w)
+    ,.mulf_complete_i(writeback_mulf_valid_w)  // NEW
+    ,.mulf_result_i  (writeback_mulf_value_w)  // NEW
+
 
     // Outputs
     ,.branch_request_o(branch_exec0_request_w)
@@ -790,6 +793,9 @@ u_exec1
     ,.opcode_ra_operand_i(opcode1_ra_operand_w)
     ,.opcode_rb_operand_i(opcode1_rb_operand_w)
     ,.hold_i(exec1_hold_w)
+    ,.mulf_complete_i(writeback_mulf_valid_w)  // NEW
+    ,.mulf_result_i  (writeback_mulf_value_w)  // NEW
+
 
     // Outputs
     ,.branch_request_o(branch_exec1_request_w)
