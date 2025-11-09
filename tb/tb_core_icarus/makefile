@@ -3,7 +3,7 @@
 ###############################################################################
 ELF_FILE ?= test.elf
 
-OBJCOPY ?= riscv32-unknown-elf-objcopy
+OBJCOPY ?= riscv64-unknown-elf-objcopy
 ifeq ($(shell which $(OBJCOPY)),)
   ${error $(OBJCOPY) missing from PATH}
 endif
