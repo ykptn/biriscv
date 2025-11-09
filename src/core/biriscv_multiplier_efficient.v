@@ -91,25 +91,24 @@ begin
     
     MULF_STATE_CALC0: // P0 = A_l * B_l
     begin
+        p0_q    <= mult_out_w; // Latch result computed in THIS cycle
         state_q <= MULF_STATE_CALC1;
     end
     
     MULF_STATE_CALC1: // P1 = A_l * B_h
     begin
-        p0_q    <= mult_out_w; // Latch result from CALC0
+        p1_q    <= mult_out_w; // Latch result computed in THIS cycle
         state_q <= MULF_STATE_CALC2;
     end
     
     MULF_STATE_CALC2: // P2 = A_h * B_l
     begin
-        p1_q    <= mult_out_w; // Latch result from CALC1
+        p2_q    <= mult_out_w; // Latch result computed in THIS cycle
         state_q <= MULF_STATE_DONE;
     end
 
     MULF_STATE_DONE:
     begin
-        p2_q    <= mult_out_w; // Latch result from CALC2
-        
         // Calculate final 32-bit result
         // Result = (A_l*B_l) + (A_l*B_h << 16) + (A_h*B_l << 16)
         result_r <= p0_q + (p1_q << 16) + (p2_q << 16);
