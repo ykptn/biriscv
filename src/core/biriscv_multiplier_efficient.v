@@ -1,5 +1,3 @@
-
-
 module biriscv_multiplier_efficient
 (
     // Inputs
@@ -29,11 +27,11 @@ module biriscv_multiplier_efficient
 //-----------------------------------------------------------------
 // Local Params
 //-----------------------------------------------------------------
-localparam [2:0] MULF_STATE_IDLE  = 3'd0;
-localparam [2:0] MULF_STATE_CALC0 = 3'd1;
-localparam [2:0] MULF_STATE_CALC1 = 3'd2;
-localparam [2:0] MULF_STATE_CALC2 = 3'd3;
-localparam [2:0] MULF_STATE_DONE  = 3'd4;
+localparam [2:0] MULE_STATE_IDLE  = 3'd0;
+localparam [2:0] MULE_STATE_CALC0 = 3'd1;
+localparam [2:0] MULE_STATE_CALC1 = 3'd2;
+localparam [2:0] MULE_STATE_CALC2 = 3'd3;
+localparam [2:0] MULE_STATE_DONE  = 3'd4;
 
 //-----------------------------------------------------------------
 // Registers / Wires
@@ -67,7 +65,7 @@ assign mult_out_w = mult_a_in_w * mult_b_in_w;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
 begin
-    state_q  <= MULF_STATE_IDLE;
+    state_q  <= MULE_STATE_IDLE;
     valid_r  <= 1'b0;
     valid_q <= 1'b0;      // NEW
     a_q      <= 32'b0;
@@ -83,48 +81,48 @@ begin
     valid_r <= 1'b0;
 
     case (state_q)
-    MULF_STATE_IDLE:
+    MULE_STATE_IDLE:
     begin
         if (opcode_valid_i) // New instruction from issue
         begin
             a_q     <= opcode_ra_operand_i;
             b_q     <= opcode_rb_operand_i;
             rd_idx_q <= opcode_rd_idx_i;  // Latch rd index
-            state_q <= MULF_STATE_CALC0;
+            state_q <= MULE_STATE_CALC0;
         end
     end
     
-    MULF_STATE_CALC0: // P0 = A_l * B_l
+    MULE_STATE_CALC0: // P0 = A_l * B_l
     begin
         p0_q    <= mult_out_w; // Latch result computed in THIS cycle
-        state_q <= MULF_STATE_CALC1;
+        state_q <= MULE_STATE_CALC1;
     end
     
-    MULF_STATE_CALC1: // P1 = A_l * B_h
+    MULE_STATE_CALC1: // P1 = A_l * B_h
     begin
         p1_q    <= mult_out_w; // Latch result computed in THIS cycle
-        state_q <= MULF_STATE_CALC2;
+        state_q <= MULE_STATE_CALC2;
     end
     
-    MULF_STATE_CALC2: // P2 = A_h * B_l
+    MULE_STATE_CALC2: // P2 = A_h * B_l
     begin
         p2_q    <= mult_out_w; // Latch result computed in THIS cycle
-        state_q <= MULF_STATE_DONE;
+        state_q <= MULE_STATE_DONE;
     end
 
-    MULF_STATE_DONE:
+    MULE_STATE_DONE:
     begin
         // Calculate final 32-bit result
         // Result = (A_l*B_l) + (A_l*B_h << 16) + (A_h*B_l << 16)
         // result_r <= p0_q + (p1_q << 16) + (p2_q << 16);   NEW GONE
         
         valid_r <= 1'b1; // Signal completion to issue stage
-        state_q <= MULF_STATE_IDLE;
+        state_q <= MULE_STATE_IDLE;
     end
 
     default:
     begin
-        state_q <= MULF_STATE_IDLE;
+        state_q <= MULE_STATE_IDLE;
     end
     endcase
     valid_q <= valid_r; //  NEW
@@ -135,14 +133,14 @@ end
 //-----------------------------------------------------------------
 
 // FSM controls the inputs to the 16x16 multiplier
-assign mult_a_in_w = (state_q == MULF_STATE_CALC0) ? a_q[15:0] : // A_l
-                     (state_q == MULF_STATE_CALC1) ? a_q[15:0] : // A_l
-                     (state_q == MULF_STATE_CALC2) ? a_q[31:16] : // A_h
+assign mult_a_in_w = (state_q == MULE_STATE_CALC0) ? a_q[15:0] : // A_l
+                     (state_q == MULE_STATE_CALC1) ? a_q[15:0] : // A_l
+                     (state_q == MULE_STATE_CALC2) ? a_q[31:16] : // A_h
                      16'b0;
 
-assign mult_b_in_w = (state_q == MULF_STATE_CALC0) ? b_q[15:0] : // B_l
-                     (state_q == MULF_STATE_CALC1) ? b_q[31:16] : // B_h
-                     (state_q == MULF_STATE_CALC2) ? b_q[15:0] : // B_l
+assign mult_b_in_w = (state_q == MULE_STATE_CALC0) ? b_q[15:0] : // B_l
+                     (state_q == MULE_STATE_CALC1) ? b_q[31:16] : // B_h
+                     (state_q == MULE_STATE_CALC2) ? b_q[15:0] : // B_l
                      16'b0;
 
 // Combinational final product from partials

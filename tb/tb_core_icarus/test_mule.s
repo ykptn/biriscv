@@ -1,6 +1,6 @@
 ###############################################################################
-# MULF Custom Instruction Test Program
-# Tests the custom mulf (fast multiply) instruction implementation
+# MULE Custom Instruction Test Program
+# Tests the custom mule (fast multiply) instruction implementation
 # 
 # Test: Multiply 7 × 9 and verify result is 63
 # Expected: PC reaches pass_loop at 0x8000012C
@@ -25,12 +25,12 @@ main:
     li x11, 9           # a1 = 9 (second operand)
     li x13, 63          # a3 = 63 (expected result)
     
-    # Ensure operands are ready before MULF
+    # Ensure operands are ready before MULE
     nop
     nop
     
     ###########################################################################
-    # Custom MULF instruction
+    # Custom MULE instruction
     # Encoding: 0x02B5060B
     # 
     # Bit fields:
@@ -45,10 +45,10 @@ main:
     # FSM: IDLE(0) → CALC0(1) → CALC1(2) → CALC2(3) → DONE(4) → IDLE(0)
     # Latency: 5 cycles
     ###########################################################################
-    .word 0x02B5060B    # mulf x12, x10, x11
+    .word 0x02B5060B    # mule x12, x10, x11
     
-    # Insert NOPs to allow the multi-cycle mulf to complete
-    # The mulf instruction takes 5 cycles to execute:
+    # Insert NOPs to allow the multi-cycle mule to complete
+    # The mule instruction takes 5 cycles to execute:
     #   Cycle 1 (CALC0): Compute A_low × B_low → p0
     #   Cycle 2 (CALC1): Compute A_low × B_high → p1  
     #   Cycle 3 (CALC2): Compute A_high × B_low → p2
@@ -86,7 +86,7 @@ fail_loop:
 #    0x8000012C: pass_loop
 #    0x80000130: fail_loop
 #
-# 2. MULF Implementation:
+# 2. MULE Implementation:
 #    - Uses 16×16 multiplier building block
 #    - Computes 32-bit result via 3 partial products:
 #      Result = (A[15:0] × B[15:0]) + 
@@ -96,7 +96,7 @@ fail_loop:
 #
 # 3. Pipeline Considerations:
 #    - biRISC-V is dual-issue superscalar (can issue 2 instructions/cycle)
-#    - MULF stalls the pipeline until completion
+#    - MULE stalls the pipeline until completion
 #    - NOPs ensure dependent instructions don't execute prematurely
 #
 # 4. Testbench Monitoring:

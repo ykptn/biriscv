@@ -38,8 +38,8 @@ module biriscv_exec
     ,input  [ 31:0]  opcode_ra_operand_i
     ,input  [ 31:0]  opcode_rb_operand_i
     ,input           hold_i
-    ,input           mulf_complete_i        //NEW
-    ,input  [31:0]   mulf_result_i          //NEW
+    ,input           mule_complete_i        //NEW
+    ,input  [31:0]   mule_result_i          //NEW
 
 
     // Outputs
@@ -252,7 +252,7 @@ else if (~hold_i)
     result_q <= alu_p_w;
 
 //assign writeback_value_o  = result_q;
-assign writeback_value_o  = mulf_complete_i ? mulf_result_i : result_q;
+assign writeback_value_o  = mule_complete_i ? mule_result_i : result_q;
 
 //-----------------------------------------------------------------
 // less_than_signed: Less than operator (signed)

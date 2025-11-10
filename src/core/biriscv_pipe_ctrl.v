@@ -45,7 +45,7 @@ module biriscv_pipe_ctrl
     ,input           issue_csr_i
     ,input           issue_div_i
     ,input           issue_mul_i
-    ,input           issue_mulf_i             // <--- MODIFIED
+    ,input           issue_mule_i             // <--- MODIFIED
     ,input           issue_branch_i
     ,input           issue_rd_valid_i
     ,input  [4:0]    issue_rd_i
@@ -93,8 +93,8 @@ module biriscv_pipe_ctrl
     // Out of pipe: Divide Result
     ,input           div_complete_i
     ,input  [31:0]   div_result_i
-    ,input           mulf_complete_i        // <--- MODIFIED
-    ,input  [31:0]   mulf_result_i          // <--- MODIFIED
+    ,input           mule_complete_i        // <--- MODIFIED
+    ,input  [31:0]   mule_result_i          // <--- MODIFIED
 
     // Commit
     ,output          valid_wb_o
@@ -125,7 +125,7 @@ wire branch_misaligned_w = (issue_branch_taken_i && issue_branch_target_i[1:0] !
 //-------------------------------------------------------------
 // E1 / Address
 //------------------------------------------------------------- 
-`define PCINFO_W     11             // <--- MODIFIED
+`define PCINFO_W     11
 `define PCINFO_ALU       0
 `define PCINFO_LOAD      1
 `define PCINFO_STORE     2
@@ -136,7 +136,7 @@ wire branch_misaligned_w = (issue_branch_taken_i && issue_branch_target_i[1:0] !
 `define PCINFO_RD_VALID  7
 `define PCINFO_INTR      8
 `define PCINFO_COMPLETE  9
-`define PCINFO_MULF      10            // <--- MODIFIED
+`define PCINFO_MULE      10            // renamed from PCINFO_MULE
 
 `define RD_IDX_R    11:7
 
@@ -166,14 +166,14 @@ else if (issue_stall_i)
 else if ((issue_valid_i && issue_accept_i) && ~(squash_e1_e2_o || squash_e1_e2_i))
 begin
     valid_e1_q                  <= 1'b1;
-    ctrl_e1_q[`PCINFO_ALU]      <= ~(issue_lsu_i | issue_csr_i | issue_div_i | issue_mul_i | issue_mulf_i); // <--- MODIFIED
+    ctrl_e1_q[`PCINFO_ALU]      <= ~(issue_lsu_i | issue_csr_i | issue_div_i | issue_mul_i | issue_mule_i); // use issue_mule_i
     ctrl_e1_q[`PCINFO_LOAD]     <= issue_lsu_i &  issue_rd_valid_i & ~take_interrupt_i;
     // TODO: Check
     ctrl_e1_q[`PCINFO_STORE]    <= issue_lsu_i & ~issue_rd_valid_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_CSR]      <= issue_csr_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_DIV]      <= issue_div_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_MUL]      <= issue_mul_i & ~take_interrupt_i;
-    ctrl_e1_q[`PCINFO_MULF]     <= issue_mulf_i & ~take_interrupt_i;    // <--- MODIFIED
+    ctrl_e1_q[`PCINFO_MULE]     <= issue_mule_i & ~take_interrupt_i;    // use PCINFO_MULE / issue_mule_i
     ctrl_e1_q[`PCINFO_BRANCH]   <= issue_branch_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_RD_VALID] <= issue_rd_valid_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_INTR]     <= take_interrupt_i;
@@ -286,14 +286,14 @@ begin
 
     if (ctrl_e1_q[`PCINFO_DIV])
         result_e2_q <= div_result_i;
-    else if (ctrl_e1_q[`PCINFO_MULF])      // <--- MODIFIED
-        result_e2_q <= mulf_result_i;     // <--- MODIFIED
+    else if (ctrl_e1_q[`PCINFO_MULE])
+        result_e2_q <= mule_result_i;
     else if (ctrl_e1_q[`PCINFO_CSR])
         result_e2_q <= csr_result_value_e1_i;
     else
         result_e2_q <= alu_result_e1_i;
 
-    if (ctrl_e1_q[`PCINFO_MULF] && mulf_complete_i) begin
+    if (ctrl_e1_q[`PCINFO_MULE] && mule_complete_i) begin
         valid_e2_q <= 1'b0;
     end
 end
@@ -319,7 +319,7 @@ assign result_e2_o     = result_e2_r;
 
 // Load store result not ready when reaching E2
 assign stall_o         = (ctrl_e1_q[`PCINFO_DIV] && ~div_complete_i) ||
-                         (ctrl_e1_q[`PCINFO_MULF] && ~mulf_complete_i) ||   // <--- MODIFIED
+                         (ctrl_e1_q[`PCINFO_MULE] && ~mule_complete_i) ||   // use MULE variant
                          ((ctrl_e2_q[`PCINFO_LOAD] | ctrl_e2_q[`PCINFO_STORE]) & ~mem_complete_i);
 
 reg [`EXCEPTION_W-1:0] exception_e2_r;
@@ -387,7 +387,7 @@ begin
     result_wb_q     <= 32'b0;
     exception_wb_q  <= `EXCEPTION_W'b0;
 end
-else if (ctrl_e1_q[`PCINFO_MULF] && mulf_complete_i && valid_e1_q)
+else if (ctrl_e1_q[`PCINFO_MULE] && mule_complete_i && valid_e1_q)
 begin
     valid_wb_q <= 1'b1;
     ctrl_wb_q <= ctrl_e1_q;
@@ -396,7 +396,7 @@ begin
     opcode_wb_q <= opcode_e1_q;
     operand_ra_wb_q <= operand_ra_e1_q;
     operand_rb_wb_q <= operand_rb_e1_q;
-    result_wb_q <= mulf_result_i;
+    result_wb_q <= mule_result_i;
     exception_wb_q <= exception_e1_q;
     csr_wr_wb_q <= 1'b0;
     csr_wdata_wb_q <= 32'b0;
