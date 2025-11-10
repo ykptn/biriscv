@@ -292,6 +292,10 @@ begin
         result_e2_q <= csr_result_value_e1_i;
     else
         result_e2_q <= alu_result_e1_i;
+
+    if (ctrl_e1_q[`PCINFO_MULF] && mulf_complete_i) begin
+        valid_e2_q <= 1'b0;
+    end
 end
 
 reg [31:0] result_e2_r;
@@ -382,6 +386,20 @@ begin
     operand_rb_wb_q <= 32'b0;
     result_wb_q     <= 32'b0;
     exception_wb_q  <= `EXCEPTION_W'b0;
+end
+else if (ctrl_e1_q[`PCINFO_MULF] && mulf_complete_i && valid_e1_q)
+begin
+    valid_wb_q <= 1'b1;
+    ctrl_wb_q <= ctrl_e1_q;
+    pc_wb_q <= pc_e1_q;
+    npc_wb_q <= npc_e1_q;
+    opcode_wb_q <= opcode_e1_q;
+    operand_ra_wb_q <= operand_ra_e1_q;
+    operand_rb_wb_q <= operand_rb_e1_q;
+    result_wb_q <= mulf_result_i;
+    exception_wb_q <= exception_e1_q;
+    csr_wr_wb_q <= 1'b0;
+    csr_wdata_wb_q <= 32'b0;
 end
 else
 begin

@@ -25,6 +25,10 @@ main:
     li x11, 9           # a1 = 9 (second operand)
     li x13, 63          # a3 = 63 (expected result)
     
+    # Ensure operands are ready before MULF
+    nop
+    nop
+    
     ###########################################################################
     # Custom MULF instruction
     # Encoding: 0x02B5060B
