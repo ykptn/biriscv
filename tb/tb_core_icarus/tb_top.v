@@ -63,22 +63,19 @@ always @(posedge clk) begin
     if (!rst) begin
         cycle_count <= cycle_count + 1;
         
-        // Monitor mulf FSM EVERY cycle - outside PC change check
+        // Monitor mule FSM EVERY cycle - outside PC change check
         if (cycle_count >= 8 && cycle_count <= 20) begin
-            $display("[Cycle %0d] MULF: state=%0d, a=%0d, b=%0d, mult_a=%0d, mult_b=%0d, mult_out=%0d",
-                cycle_count, u_dut.u_mulf.state_q,
-                u_dut.u_mulf.a_q, u_dut.u_mulf.b_q,
-                u_dut.u_mulf.mult_a_in_w, u_dut.u_mulf.mult_b_in_w, u_dut.u_mulf.mult_out_w);
-            //$display("              p0=%0d, p1=%0d, p2=%0d, result=%0d, valid=%b",                old
-                //u_dut.u_mulf.p0_q, u_dut.u_mulf.p1_q, u_dut.u_mulf.p2_q,
-                //u_dut.u_mulf.result_r, u_dut.u_mulf.writeback_valid_o);
+            $display("[Cycle %0d] MULE: state=%0d, a=%0d, b=%0d, mult_a=%0d, mult_b=%0d, mult_out=%0d",
+                cycle_count, u_dut.u_mule.state_q,
+                u_dut.u_mule.a_q, u_dut.u_mule.b_q,
+                u_dut.u_mule.mult_a_in_w, u_dut.u_mule.mult_b_in_w, u_dut.u_mule.mult_out_w);
             $display("              p0=%0d, p1=%0d, p2=%0d, valid=%b",
-                u_dut.u_mulf.p0_q, u_dut.u_mulf.p1_q, u_dut.u_mulf.p2_q,
-                u_dut.u_mulf.writeback_valid_o);
+                u_dut.u_mule.p0_q, u_dut.u_mule.p1_q, u_dut.u_mule.p2_q,
+                u_dut.u_mule.writeback_valid_o);
             // Monitor writeback signals to issue stage
-            if (u_dut.writeback_mulf_valid_w) begin
-                $display("              WRITEBACK: mulf_valid=%b, mulf_value=%0d",
-                    u_dut.writeback_mulf_valid_w, u_dut.writeback_mulf_value_w);
+            if (u_dut.writeback_mule_valid_w) begin
+                $display("              WRITEBACK: mule_valid=%b, mule_value=%0d",
+                    u_dut.writeback_mule_valid_w, u_dut.writeback_mule_value_w);
             end
         end
         
@@ -113,14 +110,14 @@ always @(posedge clk) begin
                 $display("  --> Registers after branch:");
                 $display("      x10 (a0) = %0d (expected 7)", u_dut.u_issue.u_regfile.REGFILE.reg_r10_q);
                 $display("      x11 (a1) = %0d (expected 9)", u_dut.u_issue.u_regfile.REGFILE.reg_r11_q);
-                $display("      x12 (a2) = %0d (expected 63 if mulf worked)", u_dut.u_issue.u_regfile.REGFILE.reg_r12_q);
+                $display("      x12 (a2) = %0d (expected 63 if mule worked)", u_dut.u_issue.u_regfile.REGFILE.reg_r12_q);
                 $display("      x13 (a3) = %0d (expected 63)", u_dut.u_issue.u_regfile.REGFILE.reg_r13_q);
             end
             
-            if (u_dut.u_mulf.opcode_valid_i) begin
-                $display("[Cycle %0d] MULF INPUT: a=%0d, b=%0d, rd_idx=%0d",
-                    cycle_count, u_dut.u_mulf.opcode_ra_operand_i, u_dut.u_mulf.opcode_rb_operand_i,
-                    u_dut.u_mulf.opcode_rd_idx_i);
+            if (u_dut.u_mule.opcode_valid_i) begin
+                $display("[Cycle %0d] MULE INPUT: a=%0d, b=%0d, rd_idx=%0d",
+                    cycle_count, u_dut.u_mule.opcode_ra_operand_i, u_dut.u_mule.opcode_rb_operand_i,
+                    u_dut.u_mule.opcode_rd_idx_i);
             end
 
             // Monitor instruction issue
@@ -136,10 +133,10 @@ always @(posedge clk) begin
             // Monitor PC to see when branch is taken
             if (mem_i_pc_w == 32'h80000030) begin
                 $display("[Cycle %0d] PC = 0x%08h", cycle_count, mem_i_pc_w);
-                $display("  --> Registers after mulf:");
+                $display("  --> Registers after mule:");
                 $display("      x10 (a0) = %0d (expected 7)", u_dut.u_issue.u_regfile.REGFILE.reg_r10_q);
                 $display("      x11 (a1) = %0d (expected 9)", u_dut.u_issue.u_regfile.REGFILE.reg_r11_q);
-                $display("      x12 (a2) = %0d (expected 63 if mulf worked)", u_dut.u_issue.u_regfile.REGFILE.reg_r12_q);
+                $display("      x12 (a2) = %0d (expected 63 if mule worked)", u_dut.u_issue.u_regfile.REGFILE.reg_r12_q);
                 $display("      x13 (a3) = %0d (expected 63)", u_dut.u_issue.u_regfile.REGFILE.reg_r13_q);
             end
 
@@ -147,21 +144,21 @@ always @(posedge clk) begin
             if (mem_i_pc_w == 32'h8000012c) begin
                 $display("\n*** TEST PASSED! ***");
                 $display("PC reached pass_loop at 0x8000012c");
-                $display("mulf instruction correctly computed 7 * 9 = 63");
+                $display("mule instruction correctly computed 7 * 9 = 63");
                 $display("Final register x12 (a2) = %0d", u_dut.u_issue.u_regfile.REGFILE.reg_r12_q);
                 $finish;
             end
             else if (mem_i_pc_w == 32'h80000130) begin
-                // Check if mulf actually worked
+                // Check if mule actually worked
                 if (u_dut.u_issue.u_regfile.REGFILE.reg_r12_q == 63) begin
                     $display("\n*** TEST PASSED! ***");
-                    $display("PC reached 0x80000130 but mulf computed correctly: x12 = %0d", u_dut.u_issue.u_regfile.REGFILE.reg_r12_q);
+                    $display("PC reached 0x80000130 but mule computed correctly: x12 = %0d", u_dut.u_issue.u_regfile.REGFILE.reg_r12_q);
                     $display("Test logic updated to check register values instead of PC");
                     $finish;
                 end else begin
                     $display("\n*** TEST FAILED! ***");
                     $display("PC reached fail_loop at 0x80000130");
-                    $display("mulf instruction did not produce correct result");
+                    $display("mule instruction did not produce correct result");
                     $display("Final register x12 (a2) = %0d", u_dut.u_issue.u_regfile.REGFILE.reg_r12_q);
                     $finish;
                 end
