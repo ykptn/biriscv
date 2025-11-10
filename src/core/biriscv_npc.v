@@ -107,8 +107,18 @@ else
     ras_index_real_q <= ras_index_real_r;
 
 //-----------------------------------------------------------------
-// Return Address Stack (speculative)
+// Stall tracking for PC advancement
 //-----------------------------------------------------------------
+reg pc_accept_q;
+
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+    pc_accept_q <= 1'b1;
+else
+    pc_accept_q <= pc_accept_i;
+
+// When resuming from stall (pc_accept_i = 1 and pc_accept_q = 0), advance by 4, not 8
+wire resume_from_stall_w = pc_accept_i && !pc_accept_q;
 reg [31:0] ras_stack_q[NUM_RAS_ENTRIES-1:0];
 reg [NUM_RAS_ENTRIES_W-1:0] ras_index_q;
 
@@ -368,9 +378,7 @@ assign btb_valid_w   = btb_valid_r;
 assign btb_upper_w   = btb_upper_r;
 assign btb_is_call_w = btb_is_call_r;
 assign btb_is_ret_w  = btb_is_ret_r;
-assign next_pc_f_o   = ras_ret_pred_w      ? ras_pc_pred_w : 
-                       (bht_predict_taken_w | btb_is_jmp_r) ? btb_next_pc_r :
-                       {pc_f_i[31:3],3'b0} + 32'd8;
+assign next_pc_f_o   = pc_f_i + 32'd4;
 
 assign next_taken_f_o = (btb_valid_w & (ras_ret_pred_w | bht_predict_taken_w | btb_is_jmp_r)) ? 
                         pc_f_i[2] ? {btb_upper_r, 1'b0} :
@@ -387,7 +395,7 @@ end
 else
 begin: NO_BRANCH_PREDICTION
 
-assign next_pc_f_o    = {pc_f_i[31:3],3'b0} + 32'd8;
+assign next_pc_f_o    = pc_f_i + 32'd4;
 assign next_taken_f_o = 2'b0;
 
 end
