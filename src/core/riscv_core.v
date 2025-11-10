@@ -268,6 +268,7 @@ wire  [ 31:0]  mulf_opcode_rb_operand_w;
 wire           mulf_hold_w;
 wire           writeback_mulf_valid_w;
 wire  [ 31:0]  writeback_mulf_value_w;
+wire  [  4:0]  writeback_mulf_rd_idx_w;
 // --- END OF ADDED WIRES ---
 
 
@@ -551,6 +552,7 @@ u_mulf
     // Outputs
     ,.writeback_valid_o(writeback_mulf_valid_w) // Goes to u_issue
     ,.writeback_value_o(writeback_mulf_value_w) // Goes to u_issue
+    ,.writeback_rd_idx_o(writeback_mulf_rd_idx_w) // Goes to u_issue
 );
 
 
@@ -652,6 +654,7 @@ u_issue
     ,.writeback_div_value_i(writeback_div_value_w)
     ,.writeback_mulf_valid_i(writeback_mulf_valid_w) // <--- ADD THIS
     ,.writeback_mulf_value_i(writeback_mulf_value_w) // <--- ADD THIS
+    ,.writeback_mulf_rd_idx_i(writeback_mulf_rd_idx_w) // <--- ADD THIS
     ,.csr_result_e1_value_i(csr_result_e1_value_w)
     ,.csr_result_e1_write_i(csr_result_e1_write_w)
     ,.csr_result_e1_wdata_i(csr_result_e1_wdata_w)

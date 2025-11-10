@@ -42,9 +42,14 @@ end
 // Monitor PC to detect test pass/fail
 reg [31:0] last_pc;
 reg [15:0] cycle_count;
+reg [31:0] reg_r10_prev, reg_r11_prev, reg_r12_prev, reg_r13_prev;
 initial begin
     last_pc = 32'h0;
     cycle_count = 0;
+    reg_r10_prev = 0;
+    reg_r11_prev = 0;
+    reg_r12_prev = 0;
+    reg_r13_prev = 0;
 end
 
 // Monitor instruction fetches
@@ -77,6 +82,27 @@ always @(posedge clk) begin
             end
         end
         
+        // Monitor register changes EVERY cycle (moved outside PC change block)
+        if (cycle_count > 0 && cycle_count < 100) begin
+            // Store previous values to detect changes
+            reg_r10_prev <= u_dut.u_issue.u_regfile.REGFILE.reg_r10_q;
+            reg_r11_prev <= u_dut.u_issue.u_regfile.REGFILE.reg_r11_q;
+            reg_r12_prev <= u_dut.u_issue.u_regfile.REGFILE.reg_r12_q;
+            reg_r13_prev <= u_dut.u_issue.u_regfile.REGFILE.reg_r13_q;
+            
+            // Check for changes in key registers
+            if (u_dut.u_issue.u_regfile.REGFILE.reg_r10_q != reg_r10_prev ||
+                u_dut.u_issue.u_regfile.REGFILE.reg_r11_q != reg_r11_prev ||
+                u_dut.u_issue.u_regfile.REGFILE.reg_r12_q != reg_r12_prev ||
+                u_dut.u_issue.u_regfile.REGFILE.reg_r13_q != reg_r13_prev) begin
+                $display("[Cycle %0d] Register update detected:", cycle_count);
+                $display("      x10 (a0) = %0d (prev: %0d)", u_dut.u_issue.u_regfile.REGFILE.reg_r10_q, reg_r10_prev);
+                $display("      x11 (a1) = %0d (prev: %0d)", u_dut.u_issue.u_regfile.REGFILE.reg_r11_q, reg_r11_prev);
+                $display("      x12 (a2) = %0d (prev: %0d)", u_dut.u_issue.u_regfile.REGFILE.reg_r12_q, reg_r12_prev);
+                $display("      x13 (a3) = %0d (prev: %0d)", u_dut.u_issue.u_regfile.REGFILE.reg_r13_q, reg_r13_prev);
+            end
+        end
+        
         if (mem_i_pc_w != last_pc) begin
             last_pc <= mem_i_pc_w;
             $display("[Cycle %0d] PC = 0x%08h", cycle_count, mem_i_pc_w);
@@ -104,19 +130,6 @@ always @(posedge clk) begin
                         cycle_count,
                         u_dut.u_issue.opcode_a_r, u_dut.u_issue.opcode_a_valid_r, u_dut.u_issue.opcode_a_issue_r,
                         u_dut.u_issue.opcode_b_r, u_dut.u_issue.opcode_b_valid_r, u_dut.u_issue.opcode_b_issue_r);
-                end
-            end
-
-            // Monitor all cycles to see register changes
-            if (cycle_count > 0 && cycle_count < 100) begin
-                if (u_dut.u_issue.u_regfile.REGFILE.reg_r10_q != 0 || 
-                    u_dut.u_issue.u_regfile.REGFILE.reg_r11_q != 0 ||
-                    u_dut.u_issue.u_regfile.REGFILE.reg_r12_q != 0) begin
-                    $display("[Cycle %0d] Register update detected:", cycle_count);
-                    $display("      x10 (a0) = %0d", u_dut.u_issue.u_regfile.REGFILE.reg_r10_q);
-                    $display("      x11 (a1) = %0d", u_dut.u_issue.u_regfile.REGFILE.reg_r11_q);
-                    $display("      x12 (a2) = %0d", u_dut.u_issue.u_regfile.REGFILE.reg_r12_q);
-                    $display("      x13 (a3) = %0d", u_dut.u_issue.u_regfile.REGFILE.reg_r13_q);
                 end
             end
 

@@ -23,6 +23,7 @@ main:
     # Test case: 7 × 9 = 63
     li x10, 7           # a0 = 7 (first operand)
     li x11, 9           # a1 = 9 (second operand)
+    li x13, 63          # a3 = 63 (expected result)
     
     ###########################################################################
     # Custom MULF instruction
@@ -54,10 +55,6 @@ main:
     nop
     nop
     nop
-    nop
-    
-    # Load expected result for comparison
-    li x13, 63          # a3 = 63 (expected: 7 × 9)
     
     # Compare actual result (x12) with expected (x13)
     bne x12, x13, fail_loop
