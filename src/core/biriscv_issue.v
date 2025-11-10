@@ -104,6 +104,7 @@ module biriscv_issue
     ,input  [ 31:0]  writeback_div_value_i
     ,input           writeback_mulf_valid_i       // <--- ADD THIS
     ,input  [ 31:0]  writeback_mulf_value_i       // <--- ADD THIS
+    ,input  [  4:0]  writeback_mulf_rd_idx_i      // <--- ADD THIS
     ,input  [ 31:0]  csr_result_e1_value_i
     ,input           csr_result_e1_write_i
     ,input  [ 31:0]  csr_result_e1_wdata_i
@@ -402,6 +403,7 @@ u_pipe0_ctrl
     ,.issue_csr_i(issue_a_csr_w)
     ,.issue_div_i(issue_a_div_w)
     ,.issue_mul_i(issue_a_mul_w)
+    ,.issue_mulf_i(issue_a_mulf_w)    // <--- ADD THIS
     ,.issue_branch_i(issue_a_branch_w)
     ,.issue_rd_valid_i(issue_a_sb_alloc_w)
     ,.issue_rd_i(issue_a_rd_idx_w)

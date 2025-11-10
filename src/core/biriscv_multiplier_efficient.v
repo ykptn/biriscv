@@ -18,6 +18,7 @@ module biriscv_multiplier_efficient
     // Outputs
     ,output          writeback_valid_o
     ,output [ 31:0]  writeback_value_o
+    ,output [  4:0]  writeback_rd_idx_o
 );
 
 //-----------------------------------------------------------------
@@ -45,6 +46,7 @@ reg          valid_r, valid_q;   // new
 // Latched Operands
 reg [ 31:0]  a_q;
 reg [ 31:0]  b_q;
+reg [  4:0]  rd_idx_q;  // Store rd index for writeback
 
 // Partial results from the 16x16 multiplier
 reg [ 31:0]  p0_q; // (A_l * B_l)
@@ -68,9 +70,9 @@ begin
     state_q  <= MULF_STATE_IDLE;
     valid_r  <= 1'b0;
     valid_q <= 1'b0;      // NEW
-    result_r <= 32'b0;
     a_q      <= 32'b0;
     b_q      <= 32'b0;
+    rd_idx_q <= 5'b0;     // Initialize rd index
     p0_q     <= 32'b0;
     p1_q     <= 32'b0;
     p2_q     <= 32'b0;
@@ -87,6 +89,7 @@ begin
         begin
             a_q     <= opcode_ra_operand_i;
             b_q     <= opcode_rb_operand_i;
+            rd_idx_q <= opcode_rd_idx_i;  // Latch rd index
             state_q <= MULF_STATE_CALC0;
         end
     end
@@ -149,6 +152,7 @@ assign result_w = p0_q + (p1_q << 16) + (p2_q << 16);  // NEW
 // Outputs
 assign writeback_valid_o = valid_q;              // NEW
 assign writeback_value_o = result_w;             // NEW
+assign writeback_rd_idx_o = rd_idx_q;            // NEW
 
 // Outputs to issue stage
 //assign writeback_valid_o = valid_r;   old
