@@ -656,6 +656,19 @@ else if (mule_opcode_valid_o && issue_a_mule_w)
     mule_pending_q <= 1'b1;
 else if (writeback_mule_valid_i)
     mule_pending_q <= 1'b0;
+
+// Track MULE destination register for scoreboard
+reg [4:0] mule_rd_q;
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+    mule_rd_q <= 5'b0;
+else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
+    mule_rd_q <= 5'b0;
+else if (mule_opcode_valid_o && issue_a_mule_w)
+    mule_rd_q <= issue_a_rd_idx_w;
+else if (writeback_mule_valid_i)
+    mule_rd_q <= 5'b0;
+
 assign squash_w = pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w;
 
 //-------------------------------------------------------------
@@ -704,6 +717,10 @@ begin
             scoreboard_r[pipe1_rd_e2_w] = 1'b1;
     end
 
+    // MULE is multi-cycle (5 cycles) so track in scoreboard while pending
+    if (mule_pending_q && mule_rd_q != 5'b0)
+        scoreboard_r[mule_rd_q] = 1'b1;
+
     // Execution units with >= 1 cycle latency (loads / multiply)
     if (pipe0_load_e1_w || pipe0_mul_e1_w)
         scoreboard_r[pipe0_rd_e1_w] = 1'b1;
@@ -714,11 +731,11 @@ begin
     if ((pipe0_load_e1_w || pipe0_store_e1_w || pipe1_load_e1_w || pipe1_store_e1_w ) && (issue_a_mul_w || issue_a_div_w || issue_a_csr_w || issue_a_mule_w))
         scoreboard_r = 32'hFFFFFFFF;
 
-    // Stall - no issues...
-    if (lsu_stall_i || stall_w || div_pending_q || csr_pending_q || mule_pending_q)
+    // Stall
+    if (lsu_stall_i || stall_w || div_pending_q || csr_pending_q)
         ;
         
-    // Primary slot (lsu, branch, alu, mul, div, csr)
+    // Primary slot (lsu, branch, alu, mul, div, csr, mule)
     else if (opcode_a_valid_r &&
         !(scoreboard_r[issue_a_ra_idx_w] || 
           scoreboard_r[issue_a_rb_idx_w] ||
@@ -775,6 +792,54 @@ wire [31:0] issue_a_rb_value_w;
 wire [31:0] issue_b_ra_value_w;
 wire [31:0] issue_b_rb_value_w;
 
+// MULE direct writeback (bypass pipe stages when result ready)
+// Protections:
+// 1. Only write to non-zero registers (don't corrupt x0)
+// 2. Don't write if there's a pipe flush (squash)
+// 3. Ensure mule_pending_q is set (legitimate MULE operation)
+// 4. Verify destination register matches tracked mule_rd_q
+// 5. Detect conflicts with pipe0/pipe1 writeback (both writing same register)
+wire mule_rd_mismatch_w = writeback_mule_valid_i && 
+                          mule_pending_q &&
+                          (writeback_mule_rd_idx_i != mule_rd_q);
+
+wire mule_pipe0_conflict_w = writeback_mule_valid_i && 
+                              pipe0_valid_wb_w && 
+                              (|pipe0_rd_wb_w) &&
+                              (writeback_mule_rd_idx_i == pipe0_rd_wb_w);
+
+wire mule_pipe1_conflict_w = writeback_mule_valid_i && 
+                              pipe1_valid_wb_w && 
+                              (|pipe1_rd_wb_w) &&
+                              (writeback_mule_rd_idx_i == pipe1_rd_wb_w);
+
+wire mule_writeback_safe_w = writeback_mule_valid_i && 
+                              mule_pending_q && 
+                              (|writeback_mule_rd_idx_i) && 
+                              ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w) &&
+                              ~mule_rd_mismatch_w &&     // Destination register must match
+                              ~mule_pipe0_conflict_w &&  // Don't override pipe0 if conflict
+                              ~mule_pipe1_conflict_w;    // Don't override pipe1 if conflict
+
+// Synthesis ignore - runtime checks
+`ifdef verilator
+always @ (posedge clk_i)
+begin
+    if (mule_rd_mismatch_w)
+        $display("ERROR [%t]: MULE writeback destination mismatch! Expected x%0d, got x%0d", 
+                 $time, mule_rd_q, writeback_mule_rd_idx_i);
+    if (mule_pipe0_conflict_w)
+        $display("WARNING [%t]: MULE writeback conflict with pipe0! Both writing to x%0d", 
+                 $time, pipe0_rd_wb_w);
+    if (mule_pipe1_conflict_w)
+        $display("WARNING [%t]: MULE writeback conflict with pipe1! Both writing to x%0d", 
+                 $time, pipe1_rd_wb_w);
+end
+`endif
+
+wire [4:0]  pipe0_rd_wb_muxed_w    = mule_writeback_safe_w ? writeback_mule_rd_idx_i : pipe0_rd_wb_w;
+wire [31:0] pipe0_result_wb_muxed_w = mule_writeback_safe_w ? writeback_mule_value_i : pipe0_result_wb_w;
+
 // Register file: 2W4R
 biriscv_regfile
 #(
@@ -787,8 +852,8 @@ u_regfile
     .rst_i(rst_i),
 
     // Write ports
-    .rd0_i(pipe0_rd_wb_w),
-    .rd0_value_i(pipe0_result_wb_w),
+    .rd0_i(pipe0_rd_wb_muxed_w),
+    .rd0_value_i(pipe0_result_wb_muxed_w),
     .rd1_i(pipe1_rd_wb_w),
     .rd1_value_i(pipe1_result_wb_w),
 
@@ -833,6 +898,13 @@ begin
         issue_a_ra_value_r = pipe1_result_wb_w;
     if (pipe1_rd_wb_w == issue_a_rb_idx_w)
         issue_a_rb_value_r = pipe1_result_wb_w;
+
+    // Bypass - MULE direct writeback (highest priority with safety checks)
+    // Only bypass if: valid, non-zero register, and legitimate pending operation
+    if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_a_ra_idx_w)
+        issue_a_ra_value_r = writeback_mule_value_i;
+    if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_a_rb_idx_w)
+        issue_a_rb_value_r = writeback_mule_value_i;
 
     // Bypass - E2
     if (pipe0_rd_e2_w == issue_a_ra_idx_w)
@@ -895,6 +967,13 @@ begin
         issue_b_ra_value_r = pipe1_result_wb_w;
     if (pipe1_rd_wb_w == issue_b_rb_idx_w)
         issue_b_rb_value_r = pipe1_result_wb_w;
+
+    // Bypass - MULE direct writeback (highest priority with safety checks)
+    // Only bypass if: valid, non-zero register, and legitimate pending operation
+    if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_b_ra_idx_w)
+        issue_b_ra_value_r = writeback_mule_value_i;
+    if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_b_rb_idx_w)
+        issue_b_rb_value_r = writeback_mule_value_i;
 
     // Bypass - E2
     if (pipe0_rd_e2_w == issue_b_ra_idx_w)
