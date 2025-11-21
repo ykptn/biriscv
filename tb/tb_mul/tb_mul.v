@@ -3,6 +3,10 @@ module tb_mul;
 reg clk;
 reg rst;
 
+localparam PASS_PC          = 32'h8000012c;
+localparam FAIL_PC          = 32'h80000130;
+localparam EXPECTED_RESULT  = 32'd63;
+
 reg [7:0] mem[131072:0];
 integer i;
 integer f;
@@ -111,22 +115,17 @@ always @(posedge clk) begin
                         u_dut.u_issue.u_regfile.REGFILE.reg_r13_q);
             end
 
-            // PASS condition: pass_loop at 0x8000012c
-            if (mem_i_pc_w == 32'h8000012c) begin
-                $display("\n*** TEST PASSED! ***");
-                $display("MUL instruction computed x12 = %0d",
-                        u_dut.u_issue.u_regfile.REGFILE.reg_r12_q);
-                $finish;
-            end
-
-            // FAIL condition: fail_loop at 0x80000130
-            else if (mem_i_pc_w == 32'h80000130) begin
-                if (u_dut.u_issue.u_regfile.REGFILE.reg_r12_q == 63) begin
-                    $display("\n*** TEST PASSED (register match) ***");
+            if (mem_i_pc_w == FAIL_PC) begin
+                if (u_dut.u_issue.u_regfile.REGFILE.reg_r12_q == EXPECTED_RESULT) begin
+                    $display("\n*** TEST PASSED! ***");
+                    $display("PC reached 0x%08h but mul computed correctly: x12 = %0d",
+                             FAIL_PC, u_dut.u_issue.u_regfile.REGFILE.reg_r12_q);
                 end else begin
                     $display("\n*** TEST FAILED! ***");
-                    $display("x12 = %0d (expected 63)",
-                        u_dut.u_issue.u_regfile.REGFILE.reg_r12_q);
+                    $display("PC reached 0x%08h but mul result incorrect: x12 = %0d (expected %0d)",
+                             FAIL_PC,
+                             u_dut.u_issue.u_regfile.REGFILE.reg_r12_q,
+                             EXPECTED_RESULT);
                 end
                 $finish;
             end
