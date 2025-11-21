@@ -85,12 +85,6 @@ always @(posedge clk) begin
                 u_dut.u_issue.u_regfile.REGFILE.reg_r13_q != reg_mule_prev ||
                 u_dut.u_issue.u_regfile.REGFILE.reg_r14_q != reg_expected_prev) begin
 
-                if (!mul_seen && u_dut.u_issue.u_regfile.REGFILE.reg_r12_q != reg_mul_prev) begin
-                    mul_last_value <= u_dut.u_issue.u_regfile.REGFILE.reg_r12_q;
-                    mul_seen       <= 1'b1;
-                    mul_cycle      <= cycle_count;
-                end
-
                 $display("[Cycle %0d] Result registers updated:", cycle_count);
                 $display("      MUL result  (x12) = %0d (prev %0d)",
                     u_dut.u_issue.u_regfile.REGFILE.reg_r12_q, reg_mul_prev);
@@ -113,7 +107,7 @@ always @(posedge clk) begin
         end
 
         if (u_dut.mule_opcode_valid_w && !mule_issue_seen &&
-            (u_dut.mule_opcode_rd_idx_w == 5'd12)) begin
+            (u_dut.mule_opcode_rd_idx_w == 5'd13)) begin
             mule_issue_cycle <= cycle_count;
             mule_issue_seen  <= 1'b1;
             $display("[Cycle %0d] MULE issue: ra=%0d rb=%0d rd=%0d",
@@ -135,20 +129,39 @@ always @(posedge clk) begin
                      u_dut.u_mule.p2_q);
         end
 
-        if (!mule_seen && u_dut.writeback_mule_valid_w &&
-            (u_dut.writeback_mule_rd_idx_w == 5'd12)) begin
-            mule_last_value <= u_dut.writeback_mule_value_w;
-            mule_seen       <= 1'b1;
-            mule_cycle      <= cycle_count;
-            $display("[Cycle %0d] MULE writeback value=%0d (rd=%0d)",
-                     cycle_count,
-                     u_dut.writeback_mule_value_w,
-                     u_dut.writeback_mule_rd_idx_w);
+        if (!mul_seen) begin
+            if (u_dut.u_issue.pipe0_valid_wb_w && u_dut.u_issue.pipe0_rd_wb_w == 5'd12) begin
+                mul_seen       <= 1'b1;
+                mul_cycle      <= cycle_count;
+                mul_last_value <= u_dut.u_issue.pipe0_result_wb_w;
+                $display("[Cycle %0d] MUL writeback (pipe0) value=%0d",
+                         cycle_count, u_dut.u_issue.pipe0_result_wb_w);
+            end
+            else if (u_dut.u_issue.pipe1_valid_wb_w && u_dut.u_issue.pipe1_rd_wb_w == 5'd12) begin
+                mul_seen       <= 1'b1;
+                mul_cycle      <= cycle_count;
+                mul_last_value <= u_dut.u_issue.pipe1_result_wb_w;
+                $display("[Cycle %0d] MUL writeback (pipe1) value=%0d",
+                         cycle_count, u_dut.u_issue.pipe1_result_wb_w);
+            end
         end
 
-        if (u_dut.writeback_mul_value_w !== reg_mul_prev)
-            $display("[Cycle %0d] MUL writeback value=%0d",
-                     cycle_count, u_dut.writeback_mul_value_w);
+        if (!mule_seen) begin
+            if (u_dut.u_issue.pipe0_valid_wb_w && u_dut.u_issue.pipe0_rd_wb_w == 5'd13) begin
+                mule_seen       <= 1'b1;
+                mule_cycle      <= cycle_count;
+                mule_last_value <= u_dut.u_issue.pipe0_result_wb_w;
+                $display("[Cycle %0d] MULE writeback (pipe0) value=%0d",
+                         cycle_count, u_dut.u_issue.pipe0_result_wb_w);
+            end
+            else if (u_dut.u_issue.pipe1_valid_wb_w && u_dut.u_issue.pipe1_rd_wb_w == 5'd13) begin
+                mule_seen       <= 1'b1;
+                mule_cycle      <= cycle_count;
+                mule_last_value <= u_dut.u_issue.pipe1_result_wb_w;
+                $display("[Cycle %0d] MULE writeback (pipe1) value=%0d",
+                         cycle_count, u_dut.u_issue.pipe1_result_wb_w);
+            end
+        end
 
         if (mem_i_pc_w != last_pc) begin
             last_pc <= mem_i_pc_w;

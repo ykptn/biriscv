@@ -25,8 +25,8 @@ main:
     nop
     mv  x14, x12         # Save MUL result
 
-    # Custom MULE instruction (writes back into x12)
-    .insn r 0x0B, 0x0, 0x01, x12, x10, x11
+    # Custom MULE instruction (writes result into x13)
+    .insn r 0x0B, 0x0, 0x01, x13, x10, x11
 
     # Allow custom unit to finish
     nop
@@ -35,9 +35,8 @@ main:
     nop
     nop
 
-    mv  x13, x12         # Capture MULE result for debug
-
     # Compare results
+    bne x12, x13, fail_loop
     bne x12, x14, fail_loop
     bne x12, x15, fail_loop
 
