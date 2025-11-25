@@ -292,10 +292,6 @@ begin
         result_e2_q <= csr_result_value_e1_i;
     else
         result_e2_q <= alu_result_e1_i;
-
-    if (ctrl_e1_q[`PCINFO_MULE] && mule_complete_i) begin
-        valid_e2_q <= 1'b0;
-    end
 end
 
 reg [31:0] result_e2_r;
@@ -319,7 +315,6 @@ assign result_e2_o     = result_e2_r;
 
 // Load store result not ready when reaching E2
 assign stall_o         = (ctrl_e1_q[`PCINFO_DIV] && ~div_complete_i) ||
-                         (ctrl_e1_q[`PCINFO_MULE] && ~mule_complete_i) ||   // use MULE variant
                          ((ctrl_e2_q[`PCINFO_LOAD] | ctrl_e2_q[`PCINFO_STORE]) & ~mem_complete_i);
 
 reg [`EXCEPTION_W-1:0] exception_e2_r;

@@ -1,7 +1,7 @@
 ###############################################################################
 # ELF and Toolchain
 ###############################################################################
-ELF_FILE ?= test_mul.elf
+ELF_FILE ?= test_mul_compare.elf
 
 AS      = riscv64-unknown-elf-as
 LD      = riscv64-unknown-elf-ld
@@ -36,11 +36,11 @@ $(BUILD_DIR):
 ###############################################################################
 # Assemble + Link ELF using link.ld (correct memory layout)
 ###############################################################################
-test_mul.o: test_mul.s
-	$(AS) -march=rv32im -mabi=ilp32 test_mul.s -o test_mul.o
+test_mul_compare.o: test_mul_compare.s
+	$(AS) -march=rv32im -mabi=ilp32 test_mul_compare.s -o test_mul_compare.o
 
-$(ELF_FILE): test_mul.o link.ld
-	$(LD) -m elf32lriscv -T link.ld -o $(ELF_FILE) test_mul.o
+$(ELF_FILE): test_mul_compare.o link.ld
+	$(LD) -m elf32lriscv -T link.ld -o $(ELF_FILE) test_mul_compare.o
 
 ###############################################################################
 # Convert ELF → TCM binary
