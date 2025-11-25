@@ -42,6 +42,7 @@ end
 
 reg [31:0] last_pc;
 reg [15:0] cycle_count;
+reg [31:0] reg_r10_prev, reg_r11_prev, reg_r12_prev, reg_r13_prev;
 integer mul_issue_cycle;
 integer mul_done_cycle;
 integer mule_issue_cycle;
@@ -54,6 +55,10 @@ reg        fail_reported;
 initial begin
     last_pc          = 32'h0;
     cycle_count      = 0;
+    reg_r10_prev     = 32'h0;
+    reg_r11_prev     = 32'h0;
+    reg_r12_prev     = 32'h0;
+    reg_r13_prev     = 32'h0;
     mul_issue_cycle  = -1;
     mul_done_cycle   = -1;
     mule_issue_cycle = -1;
@@ -104,6 +109,14 @@ begin
 end
 endtask
 
+// Instruction fetch trace (mirrors tb_mul for easier debug)
+always @(posedge clk) begin
+    if (!rst && mem_i_rd_w && mem_i_accept_w) begin
+        $display("[Cycle %0d] FETCH: PC=0x%08h, Inst=0x%016h",
+                 cycle_count, mem_i_pc_w, mem_i_inst_w);
+    end
+end
+
 wire pipe0_mul_wb_valid_w = u_dut.u_issue.pipe0_valid_wb_w &&
                             u_dut.u_issue.u_pipe0_ctrl.ctrl_wb_q[`PCINFO_MUL];
 wire [4:0]  pipe0_rd_wb_idx_w    = u_dut.u_issue.pipe0_rd_wb_w;
@@ -124,6 +137,29 @@ wire regs_match_w = (u_dut.u_issue.u_regfile.REGFILE.reg_r12_q == EXPECTED_RESUL
 always @(posedge clk) begin
     if (!rst) begin
         cycle_count <= cycle_count + 1;
+
+        if (cycle_count > 0 && cycle_count < 200) begin
+            reg_r10_prev <= u_dut.u_issue.u_regfile.REGFILE.reg_r10_q;
+            reg_r11_prev <= u_dut.u_issue.u_regfile.REGFILE.reg_r11_q;
+            reg_r12_prev <= u_dut.u_issue.u_regfile.REGFILE.reg_r12_q;
+            reg_r13_prev <= u_dut.u_issue.u_regfile.REGFILE.reg_r13_q;
+
+            if (u_dut.u_issue.u_regfile.REGFILE.reg_r10_q != reg_r10_prev ||
+                u_dut.u_issue.u_regfile.REGFILE.reg_r11_q != reg_r11_prev ||
+                u_dut.u_issue.u_regfile.REGFILE.reg_r12_q != reg_r12_prev ||
+                u_dut.u_issue.u_regfile.REGFILE.reg_r13_q != reg_r13_prev) begin
+
+                $display("[Cycle %0d] Register update detected:", cycle_count);
+                $display("      x10 (a0) = %0d (prev: %0d)",
+                         u_dut.u_issue.u_regfile.REGFILE.reg_r10_q, reg_r10_prev);
+                $display("      x11 (a1) = %0d (prev: %0d)",
+                         u_dut.u_issue.u_regfile.REGFILE.reg_r11_q, reg_r11_prev);
+                $display("      x12 (a2) = %0d (prev: %0d)",
+                         u_dut.u_issue.u_regfile.REGFILE.reg_r12_q, reg_r12_prev);
+                $display("      x13 (a3) = %0d (prev: %0d)",
+                         u_dut.u_issue.u_regfile.REGFILE.reg_r13_q, reg_r13_prev);
+            end
+        end
 
         if (mul_issue_cycle < 0 && u_dut.mul_opcode_valid_w && u_dut.mul_opcode_rd_idx_w == 5'd12) begin
             mul_issue_cycle <= cycle_count;
