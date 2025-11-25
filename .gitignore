@@ -1,3 +1,6 @@
 tb/tb_core_icarus/waveform.vcd
 tb/tb_core_icarus/build/output.out
-tb/tb_core_icarus/waveform.vcd
+tb/tb_mul/build/output.out
+tb/tb_mul/waveform.vcd
+tb/tb_mul_compare/build/output.out
+tb/tb_mul_compare/waveform.vcd
