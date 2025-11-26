@@ -5,7 +5,6 @@ reg rst;
 
 localparam PASS_PC          = 32'h8000012c;
 localparam FAIL_PC          = 32'h80000130;
-localparam EXPECTED_RESULT  = 32'd63;
 
 reg [7:0] mem[131072:0];
 integer i;
@@ -50,6 +49,10 @@ end
 reg [31:0] last_pc;
 reg [15:0] cycle_count;
 reg [31:0] reg_r10_prev, reg_r11_prev, reg_r12_prev, reg_r13_prev;
+wire [31:0] reg_r10_w = u_dut.u_issue.u_regfile.REGFILE.reg_r10_q;
+wire [31:0] reg_r11_w = u_dut.u_issue.u_regfile.REGFILE.reg_r11_q;
+wire [31:0] reg_r12_w = u_dut.u_issue.u_regfile.REGFILE.reg_r12_q;
+wire [31:0] reg_r13_w = u_dut.u_issue.u_regfile.REGFILE.reg_r13_q;
 
 initial begin
     last_pc      = 32'h0;
@@ -74,25 +77,25 @@ always @(posedge clk) begin
 
         // Register change monitor
         if (cycle_count > 0 && cycle_count < 200) begin
-            reg_r10_prev <= u_dut.u_issue.u_regfile.REGFILE.reg_r10_q;
-            reg_r11_prev <= u_dut.u_issue.u_regfile.REGFILE.reg_r11_q;
-            reg_r12_prev <= u_dut.u_issue.u_regfile.REGFILE.reg_r12_q;
-            reg_r13_prev <= u_dut.u_issue.u_regfile.REGFILE.reg_r13_q;
+            reg_r10_prev <= reg_r10_w;
+            reg_r11_prev <= reg_r11_w;
+            reg_r12_prev <= reg_r12_w;
+            reg_r13_prev <= reg_r13_w;
 
-            if (u_dut.u_issue.u_regfile.REGFILE.reg_r10_q != reg_r10_prev ||
-                u_dut.u_issue.u_regfile.REGFILE.reg_r11_q != reg_r11_prev ||
-                u_dut.u_issue.u_regfile.REGFILE.reg_r12_q != reg_r12_prev ||
-                u_dut.u_issue.u_regfile.REGFILE.reg_r13_q != reg_r13_prev) begin
+            if (reg_r10_w != reg_r10_prev ||
+                reg_r11_w != reg_r11_prev ||
+                reg_r12_w != reg_r12_prev ||
+                reg_r13_w != reg_r13_prev) begin
 
                 $display("[Cycle %0d] Register update detected:", cycle_count);
                 $display("      x10 (a0) = %0d (prev: %0d)",
-                    u_dut.u_issue.u_regfile.REGFILE.reg_r10_q, reg_r10_prev);
+                    reg_r10_w, reg_r10_prev);
                 $display("      x11 (a1) = %0d (prev: %0d)",
-                    u_dut.u_issue.u_regfile.REGFILE.reg_r11_q, reg_r11_prev);
+                    reg_r11_w, reg_r11_prev);
                 $display("      x12 (a2) = %0d (prev: %0d)",
-                    u_dut.u_issue.u_regfile.REGFILE.reg_r12_q, reg_r12_prev);
+                    reg_r12_w, reg_r12_prev);
                 $display("      x13 (a3) = %0d (prev: %0d)",
-                    u_dut.u_issue.u_regfile.REGFILE.reg_r13_q, reg_r13_prev);
+                    reg_r13_w, reg_r13_prev);
             end
         end
 
@@ -105,27 +108,21 @@ always @(posedge clk) begin
             // Debug after branch (optional)
             if (mem_i_pc_w == 32'h80000014 || mem_i_pc_w == 32'h80000018) begin
                 $display("  --> Registers after branch:");
-                $display("      x10 (a0) = %0d (expected 7)",
-                        u_dut.u_issue.u_regfile.REGFILE.reg_r10_q);
-                $display("      x11 (a1) = %0d (expected 9)",
-                        u_dut.u_issue.u_regfile.REGFILE.reg_r11_q);
-                $display("      x12 (a2) = %0d (expected 63)",
-                        u_dut.u_issue.u_regfile.REGFILE.reg_r12_q);
-                $display("      x13 (a3) = %0d (expected 63)",
-                        u_dut.u_issue.u_regfile.REGFILE.reg_r13_q);
+                $display("      x10 (a0) = %0d", reg_r10_w);
+                $display("      x11 (a1) = %0d", reg_r11_w);
+                $display("      x12 (a2) = %0d", reg_r12_w);
+                $display("      x13 (a3) = %0d", reg_r13_w);
             end
 
             if (mem_i_pc_w == FAIL_PC) begin
-                if (u_dut.u_issue.u_regfile.REGFILE.reg_r12_q == EXPECTED_RESULT) begin
+                if (reg_r12_w == reg_r13_w) begin
                     $display("\n*** TEST PASSED! ***");
-                    $display("PC reached 0x%08h but mul computed correctly: x12 = %0d",
-                             FAIL_PC, u_dut.u_issue.u_regfile.REGFILE.reg_r12_q);
+                    $display("PC reached 0x%08h but mul computed correctly: x12 = %0d (expected %0d)",
+                             FAIL_PC, reg_r12_w, reg_r13_w);
                 end else begin
                     $display("\n*** TEST FAILED! ***");
                     $display("PC reached 0x%08h but mul result incorrect: x12 = %0d (expected %0d)",
-                             FAIL_PC,
-                             u_dut.u_issue.u_regfile.REGFILE.reg_r12_q,
-                             EXPECTED_RESULT);
+                             FAIL_PC, reg_r12_w, reg_r13_w);
                 end
                 $finish;
             end

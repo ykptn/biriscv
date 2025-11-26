@@ -4,7 +4,6 @@ module tb_mul_compare;
 
 localparam PASS_PC         = 32'h80000128;
 localparam FAIL_PC         = 32'h8000012c;
-localparam EXPECTED_RESULT = 32'd63;
 
 reg clk;
 reg rst;
@@ -69,6 +68,10 @@ initial begin
     fail_reported    = 1'b0;
 end
 
+wire [31:0] reg_mul_result_w  = u_dut.u_issue.u_regfile.REGFILE.reg_r12_q;
+wire [31:0] reg_mule_result_w = u_dut.u_issue.u_regfile.REGFILE.reg_r13_q;
+wire [31:0] reg_expected_w    = u_dut.u_issue.u_regfile.REGFILE.reg_r14_q;
+
 task automatic report_summary;
     input pass;
     input [31:0] pc_value;
@@ -78,17 +81,17 @@ begin
         $display("\n*** COMPARE PASSED! ***");
         $display("PC reached 0x%08h and both units computed correctly: x12 = %0d, x13 = %0d",
                  pc_value,
-                 u_dut.u_issue.u_regfile.REGFILE.reg_r12_q,
-                 u_dut.u_issue.u_regfile.REGFILE.reg_r13_q);
+                 reg_mul_result_w,
+                 reg_mule_result_w);
     end
     else
     begin
         $display("\n*** COMPARE FAILED! ***");
         $display("PC reached 0x%08h but results differ: x12 = %0d, x13 = %0d (expected %0d)",
                  pc_value,
-                 u_dut.u_issue.u_regfile.REGFILE.reg_r12_q,
-                 u_dut.u_issue.u_regfile.REGFILE.reg_r13_q,
-                 EXPECTED_RESULT);
+                 reg_mul_result_w,
+                 reg_mule_result_w,
+                 reg_expected_w);
     end
 
     if (mul_issue_cycle >= 0 && mul_done_cycle >= 0)
@@ -131,8 +134,8 @@ wire mule_wb_valid_w = u_dut.writeback_mule_valid_w;
 wire [4:0] mule_wb_rd_idx_w = u_dut.writeback_mule_rd_idx_w;
 wire [31:0] mule_wb_value_w = u_dut.writeback_mule_value_w;
 
-wire regs_match_w = (u_dut.u_issue.u_regfile.REGFILE.reg_r12_q == EXPECTED_RESULT) &&
-                    (u_dut.u_issue.u_regfile.REGFILE.reg_r13_q == EXPECTED_RESULT);
+wire regs_match_w = (reg_mul_result_w == reg_expected_w) &&
+                    (reg_mule_result_w == reg_expected_w);
 
 always @(posedge clk) begin
     if (!rst) begin
