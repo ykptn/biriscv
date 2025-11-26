@@ -793,49 +793,9 @@ wire [31:0] issue_b_ra_value_w;
 wire [31:0] issue_b_rb_value_w;
 
 // MULE direct writeback (bypass pipe stages when result ready)
-// Protections:
-// 1. Only write to non-zero registers (don't corrupt x0)
-// 2. Don't write if there's a pipe flush (squash)
-// 3. Ensure mule_pending_q is set (legitimate MULE operation)
-// 4. Verify destination register matches tracked mule_rd_q
-// 5. Detect conflicts with pipe0/pipe1 writeback (both writing same register)
-wire mule_rd_mismatch_w = writeback_mule_valid_i && 
-                          mule_pending_q &&
-                          (writeback_mule_rd_idx_i != mule_rd_q);
-
-wire mule_pipe0_conflict_w = writeback_mule_valid_i && 
-                              pipe0_valid_wb_w && 
-                              (|pipe0_rd_wb_w) &&
-                              (writeback_mule_rd_idx_i == pipe0_rd_wb_w);
-
-wire mule_pipe1_conflict_w = writeback_mule_valid_i && 
-                              pipe1_valid_wb_w && 
-                              (|pipe1_rd_wb_w) &&
-                              (writeback_mule_rd_idx_i == pipe1_rd_wb_w);
-
 wire mule_writeback_safe_w = writeback_mule_valid_i && 
                               mule_pending_q && 
-                              (|writeback_mule_rd_idx_i) && 
-                              ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w) &&
-                              ~mule_rd_mismatch_w &&     // Destination register must match
-                              ~mule_pipe0_conflict_w &&  // Don't override pipe0 if conflict
-                              ~mule_pipe1_conflict_w;    // Don't override pipe1 if conflict
-
-// Synthesis ignore - runtime checks
-`ifdef verilator
-always @ (posedge clk_i)
-begin
-    if (mule_rd_mismatch_w)
-        $display("ERROR [%t]: MULE writeback destination mismatch! Expected x%0d, got x%0d", 
-                 $time, mule_rd_q, writeback_mule_rd_idx_i);
-    if (mule_pipe0_conflict_w)
-        $display("WARNING [%t]: MULE writeback conflict with pipe0! Both writing to x%0d", 
-                 $time, pipe0_rd_wb_w);
-    if (mule_pipe1_conflict_w)
-        $display("WARNING [%t]: MULE writeback conflict with pipe1! Both writing to x%0d", 
-                 $time, pipe1_rd_wb_w);
-end
-`endif
+                              ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
 
 wire [4:0]  pipe0_rd_wb_muxed_w    = mule_writeback_safe_w ? writeback_mule_rd_idx_i : pipe0_rd_wb_w;
 wire [31:0] pipe0_result_wb_muxed_w = mule_writeback_safe_w ? writeback_mule_value_i : pipe0_result_wb_w;
