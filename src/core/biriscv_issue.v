@@ -67,6 +67,8 @@ module biriscv_issue
     ,input           fetch1_instr_csr_i
     ,input           fetch0_instr_mule_i          // renamed from mule
     ,input           fetch1_instr_mule_i
+    ,input           fetch0_instr_cbm_i
+    ,input           fetch1_instr_cbm_i
     ,input           fetch1_instr_rd_valid_i
     ,input           fetch1_instr_invalid_i
     ,input           branch_exec0_request_i
@@ -105,6 +107,9 @@ module biriscv_issue
     ,input           writeback_mule_valid_i
     ,input  [ 31:0]  writeback_mule_value_i
     ,input  [  4:0]  writeback_mule_rd_idx_i
+    ,input           writeback_cbm_valid_i
+    ,input  [ 31:0]  writeback_cbm_value_i
+    ,input  [  4:0]  writeback_cbm_rd_idx_i
     ,input  [ 31:0]  csr_result_e1_value_i
     ,input           csr_result_e1_write_i
     ,input  [ 31:0]  csr_result_e1_wdata_i
@@ -175,6 +180,15 @@ module biriscv_issue
     ,output [  4:0]  mule_opcode_rb_idx_o
     ,output [ 31:0]  mule_opcode_ra_operand_o
     ,output [ 31:0]  mule_opcode_rb_operand_o
+    ,output          cbm_opcode_valid_o
+    ,output [ 31:0]  cbm_opcode_opcode_o
+    ,output [ 31:0]  cbm_opcode_pc_o
+    ,output          cbm_opcode_invalid_o
+    ,output [  4:0]  cbm_opcode_rd_idx_o
+    ,output [  4:0]  cbm_opcode_ra_idx_o
+    ,output [  4:0]  cbm_opcode_rb_idx_o
+    ,output [ 31:0]  cbm_opcode_ra_operand_o
+    ,output [ 31:0]  cbm_opcode_rb_operand_o
     // --- END OF ADDED OUTPUTS ---
     ,output [ 31:0]  csr_opcode_pc_o
     ,output          csr_opcode_invalid_o
@@ -330,6 +344,7 @@ wire       issue_a_branch_w   = (slot0_valid_r ? fetch0_instr_branch_i   : fetch
 wire       issue_a_mul_w      = (slot0_valid_r ? fetch0_instr_mul_i      : fetch1_instr_mul_i);
 wire       issue_a_div_w      = (slot0_valid_r ? fetch0_instr_div_i      : fetch1_instr_div_i);
 wire       issue_a_mule_w     = (slot0_valid_r ? fetch0_instr_mule_i     : fetch1_instr_mule_i); // use mule
+wire       issue_a_cbm_w      = (slot0_valid_r ? fetch0_instr_cbm_i      : fetch1_instr_cbm_i);
 wire       issue_a_csr_w      = (slot0_valid_r ? fetch0_instr_csr_i      : fetch1_instr_csr_i);
 wire       issue_a_invalid_w  = (slot0_valid_r ? fetch0_instr_invalid_i  : fetch1_instr_invalid_i);
 
@@ -403,7 +418,8 @@ u_pipe0_ctrl
     ,.issue_csr_i(issue_a_csr_w)
     ,.issue_div_i(issue_a_div_w)
     ,.issue_mul_i(issue_a_mul_w)
-    ,.issue_mule_i(issue_a_mule_w)    // pass mule flag to pipe_ctrl
+    ,.issue_mule_i(issue_a_mule_w)
+    ,.issue_cbm_i(issue_a_cbm_w)
     ,.issue_branch_i(issue_a_branch_w)
     ,.issue_rd_valid_i(issue_a_sb_alloc_w)
     ,.issue_rd_i(issue_a_rd_idx_w)
@@ -454,8 +470,10 @@ u_pipe0_ctrl
     // Out of pipe: Divide Result
     ,.div_complete_i(writeback_div_valid_i)
     ,.div_result_i(writeback_div_value_i)
-    ,.mule_complete_i(writeback_mule_valid_i) // use mule signals
-    ,.mule_result_i(writeback_mule_value_i)   // use mule signals
+    ,.mule_complete_i(writeback_mule_valid_i)
+    ,.mule_result_i(writeback_mule_value_i)
+    ,.cbm_complete_i(writeback_cbm_valid_i)
+    ,.cbm_result_i(writeback_cbm_value_i)
 
     // Commit
     ,.valid_wb_o(pipe0_valid_wb_w)
@@ -528,6 +546,8 @@ u_pipe1_ctrl
     ,.issue_csr_i(1'b0)
     ,.issue_div_i(1'b0)
     ,.issue_mul_i(issue_b_mul_w)
+    ,.issue_mule_i(1'b0)
+    ,.issue_cbm_i(1'b0)
     ,.issue_branch_i(issue_b_branch_w)
     ,.issue_rd_valid_i(issue_b_sb_alloc_w)
     ,.issue_rd_i(issue_b_rd_idx_w)
@@ -578,8 +598,10 @@ u_pipe1_ctrl
     // Out of pipe: Divide Result
     ,.div_complete_i(writeback_div_valid_i)
     ,.div_result_i(writeback_div_value_i)
-    ,.mule_complete_i(writeback_mule_valid_i) // use mule signals
-    ,.mule_result_i(writeback_mule_value_i)   // use mule signals
+    ,.mule_complete_i(writeback_mule_valid_i)
+    ,.mule_result_i(writeback_mule_value_i)
+    ,.cbm_complete_i(writeback_cbm_valid_i)
+    ,.cbm_result_i(writeback_cbm_value_i)
 
     // Commit
     ,.valid_wb_o(pipe1_valid_wb_w)
@@ -621,7 +643,8 @@ assign branch_info_pc_o           = (pipe1_branch_e1_w & branch_exec1_request_i)
 //-------------------------------------------------------------
 reg div_pending_q;
 reg csr_pending_q;
-reg mule_pending_q; // <--- ADD THIS
+reg mule_pending_q;
+reg cbm_pending_q;
 
 // Division operations take 2 - 34 cycles and stall
 // the pipeline (complete out-of-pipe) until completed.
@@ -659,6 +682,7 @@ else if (writeback_mule_valid_i)
 
 // Track MULE destination register for scoreboard
 reg [4:0] mule_rd_q;
+reg [4:0] cbm_rd_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     mule_rd_q <= 5'b0;
@@ -668,6 +692,27 @@ else if (mule_opcode_valid_o && issue_a_mule_w)
     mule_rd_q <= issue_a_rd_idx_w;
 else if (writeback_mule_valid_i)
     mule_rd_q <= 5'b0;
+
+// CBM block tracking (single outstanding op)
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+    cbm_pending_q <= 1'b0;
+else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
+    cbm_pending_q <= 1'b0;
+else if (cbm_opcode_valid_o && issue_a_cbm_w)
+    cbm_pending_q <= 1'b1;
+else if (writeback_cbm_valid_i)
+    cbm_pending_q <= 1'b0;
+
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+    cbm_rd_q <= 5'b0;
+else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
+    cbm_rd_q <= 5'b0;
+else if (cbm_opcode_valid_o && issue_a_cbm_w)
+    cbm_rd_q <= issue_a_rd_idx_w;
+else if (writeback_cbm_valid_i)
+    cbm_rd_q <= 5'b0;
 
 assign squash_w = pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w;
 
@@ -720,6 +765,8 @@ begin
     // MULE is multi-cycle (5 cycles) so track in scoreboard while pending
     if (mule_pending_q && mule_rd_q != 5'b0)
         scoreboard_r[mule_rd_q] = 1'b1;
+    if (cbm_pending_q && cbm_rd_q != 5'b0)
+        scoreboard_r[cbm_rd_q] = 1'b1;
 
     // Execution units with >= 1 cycle latency (loads / multiply)
     if (pipe0_load_e1_w || pipe0_mul_e1_w)
@@ -728,7 +775,7 @@ begin
         scoreboard_r[pipe1_rd_e1_w] = 1'b1;
 
     // Do not start multiply, division or CSR operation in the cycle after a load (leaving only ALU operations and branches)
-    if ((pipe0_load_e1_w || pipe0_store_e1_w || pipe1_load_e1_w || pipe1_store_e1_w ) && (issue_a_mul_w || issue_a_div_w || issue_a_csr_w || issue_a_mule_w))
+    if ((pipe0_load_e1_w || pipe0_store_e1_w || pipe1_load_e1_w || pipe1_store_e1_w ) && (issue_a_mul_w || issue_a_div_w || issue_a_csr_w || issue_a_mule_w || issue_a_cbm_w))
         scoreboard_r = 32'hFFFFFFFF;
 
     // Stall
@@ -736,11 +783,12 @@ begin
         ;
         
     // Primary slot (lsu, branch, alu, mul, div, csr, mule)
-    else if (opcode_a_valid_r &&
+else if (opcode_a_valid_r &&
         !(scoreboard_r[issue_a_ra_idx_w] || 
           scoreboard_r[issue_a_rb_idx_w] ||
-          scoreboard_r[issue_a_rd_idx_w]))
-    begin
+          scoreboard_r[issue_a_rd_idx_w]) &&
+        ~(issue_a_cbm_w && cbm_pending_q))
+begin
         opcode_a_issue_r  = 1'b1;
         opcode_a_accept_r = 1'b1;
 
@@ -796,9 +844,15 @@ wire [31:0] issue_b_rb_value_w;
 wire mule_writeback_safe_w = writeback_mule_valid_i && 
                               mule_pending_q && 
                               ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
+wire cbm_writeback_safe_w  = writeback_cbm_valid_i &&
+                              cbm_pending_q &&
+                              ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
 
-wire [4:0]  pipe0_rd_wb_muxed_w    = mule_writeback_safe_w ? writeback_mule_rd_idx_i : pipe0_rd_wb_w;
-wire [31:0] pipe0_result_wb_muxed_w = mule_writeback_safe_w ? writeback_mule_value_i : pipe0_result_wb_w;
+wire [4:0]  pipe0_rd_wb_after_mule_w    = mule_writeback_safe_w ? writeback_mule_rd_idx_i : pipe0_rd_wb_w;
+wire [31:0] pipe0_result_wb_after_mule_w = mule_writeback_safe_w ? writeback_mule_value_i : pipe0_result_wb_w;
+
+wire [4:0]  pipe0_rd_wb_muxed_w    = cbm_writeback_safe_w ? writeback_cbm_rd_idx_i : pipe0_rd_wb_after_mule_w;
+wire [31:0] pipe0_result_wb_muxed_w = cbm_writeback_safe_w ? writeback_cbm_value_i   : pipe0_result_wb_after_mule_w;
 
 // Register file: 2W4R
 biriscv_regfile
@@ -861,9 +915,14 @@ begin
 
     // Bypass - MULE direct writeback (highest priority with safety checks)
     // Only bypass if: valid, non-zero register, and legitimate pending operation
-    if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_a_ra_idx_w)
+    if (cbm_writeback_safe_w && writeback_cbm_rd_idx_i == issue_a_ra_idx_w)
+        issue_a_ra_value_r = writeback_cbm_value_i;
+    else if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_a_ra_idx_w)
         issue_a_ra_value_r = writeback_mule_value_i;
-    if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_a_rb_idx_w)
+
+    if (cbm_writeback_safe_w && writeback_cbm_rd_idx_i == issue_a_rb_idx_w)
+        issue_a_rb_value_r = writeback_cbm_value_i;
+    else if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_a_rb_idx_w)
         issue_a_rb_value_r = writeback_mule_value_i;
 
     // Bypass - E2
@@ -930,9 +989,14 @@ begin
 
     // Bypass - MULE direct writeback (highest priority with safety checks)
     // Only bypass if: valid, non-zero register, and legitimate pending operation
-    if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_b_ra_idx_w)
+    if (cbm_writeback_safe_w && writeback_cbm_rd_idx_i == issue_b_ra_idx_w)
+        issue_b_ra_value_r = writeback_cbm_value_i;
+    else if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_b_ra_idx_w)
         issue_b_ra_value_r = writeback_mule_value_i;
-    if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_b_rb_idx_w)
+
+    if (cbm_writeback_safe_w && writeback_cbm_rd_idx_i == issue_b_rb_idx_w)
+        issue_b_rb_value_r = writeback_cbm_value_i;
+    else if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_b_rb_idx_w)
         issue_b_rb_value_r = writeback_mule_value_i;
 
     // Bypass - E2
@@ -1002,6 +1066,16 @@ assign mule_opcode_rb_idx_o     = opcode0_rb_idx_o;
 assign mule_opcode_ra_operand_o = opcode0_ra_operand_o;
 assign mule_opcode_rb_operand_o = opcode0_rb_operand_o;
 assign mule_opcode_invalid_o    = opcode_a_issue_r && issue_a_invalid_w;
+
+assign cbm_opcode_valid_o     = enable_muldiv_w & (opcode_a_issue_r & issue_a_cbm_w);
+assign cbm_opcode_opcode_o    = opcode0_opcode_o;
+assign cbm_opcode_pc_o        = opcode0_pc_o;
+assign cbm_opcode_rd_idx_o    = opcode0_rd_idx_o;
+assign cbm_opcode_ra_idx_o    = opcode0_ra_idx_o;
+assign cbm_opcode_rb_idx_o    = opcode0_rb_idx_o;
+assign cbm_opcode_ra_operand_o= opcode0_ra_operand_o;
+assign cbm_opcode_rb_operand_o= opcode0_rb_operand_o;
+assign cbm_opcode_invalid_o   = opcode_a_issue_r && issue_a_invalid_w;
 
 //-------------------------------------------------------------
 // CSR unit

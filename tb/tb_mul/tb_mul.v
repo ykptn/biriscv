@@ -53,6 +53,10 @@ wire [31:0] reg_r10_w = u_dut.u_issue.u_regfile.REGFILE.reg_r10_q;
 wire [31:0] reg_r11_w = u_dut.u_issue.u_regfile.REGFILE.reg_r11_q;
 wire [31:0] reg_r12_w = u_dut.u_issue.u_regfile.REGFILE.reg_r12_q;
 wire [31:0] reg_r13_w = u_dut.u_issue.u_regfile.REGFILE.reg_r13_q;
+wire [63:0] expected_full_w = reg_r10_w * reg_r11_w;
+wire [31:0] expected_result_w = expected_full_w[31:0];
+reg         pass_reported;
+reg         fail_reported;
 
 initial begin
     last_pc      = 32'h0;
@@ -61,6 +65,8 @@ initial begin
     reg_r11_prev = 0;
     reg_r12_prev = 0;
     reg_r13_prev = 0;
+    pass_reported = 1'b0;
+    fail_reported = 1'b0;
 end
 
 // Instruction fetch trace
@@ -105,24 +111,17 @@ always @(posedge clk) begin
 
             $display("[Cycle %0d] PC = 0x%08h", cycle_count, mem_i_pc_w);
 
-            // Debug after branch (optional)
-            if (mem_i_pc_w == 32'h80000014 || mem_i_pc_w == 32'h80000018) begin
-                $display("  --> Registers after branch:");
-                $display("      x10 (a0) = %0d", reg_r10_w);
-                $display("      x11 (a1) = %0d", reg_r11_w);
-                $display("      x12 (a2) = %0d", reg_r12_w);
-                $display("      x13 (a3) = %0d", reg_r13_w);
-            end
-
-            if (mem_i_pc_w == FAIL_PC) begin
-                if (reg_r12_w == reg_r13_w) begin
+            if ((mem_i_pc_w == FAIL_PC) && !pass_reported && !fail_reported) begin
+                if (reg_r12_w == expected_result_w) begin
+                    pass_reported <= 1'b1;
                     $display("\n*** TEST PASSED! ***");
-                    $display("PC reached 0x%08h but mul computed correctly: x12 = %0d (expected %0d)",
-                             FAIL_PC, reg_r12_w, reg_r13_w);
+                    $display("PC reached 0x%08h and MUL matched software expectation: x12 = %0d (expected %0d)",
+                             FAIL_PC, reg_r12_w, expected_result_w);
                 end else begin
+                    fail_reported <= 1'b1;
                     $display("\n*** TEST FAILED! ***");
-                    $display("PC reached 0x%08h but mul result incorrect: x12 = %0d (expected %0d)",
-                             FAIL_PC, reg_r12_w, reg_r13_w);
+                    $display("PC reached 0x%08h but MUL result incorrect: x12 = %0d (expected %0d)",
+                             FAIL_PC, reg_r12_w, expected_result_w);
                 end
                 $finish;
             end
@@ -130,8 +129,11 @@ always @(posedge clk) begin
 
         // Timeout
         if (cycle_count > 2000) begin
-            $display("\nTimeout after %0d cycles at PC 0x%08h",
-                     cycle_count, mem_i_pc_w);
+            if (!fail_reported) begin
+                fail_reported <= 1'b1;
+                $display("\nTimeout after %0d cycles at PC 0x%08h", cycle_count, mem_i_pc_w);
+                $display("Last observed result x12 = %0d (expected %0d)", reg_r12_w, expected_result_w);
+            end
             $finish;
         end
     end
