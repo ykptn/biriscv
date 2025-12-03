@@ -91,6 +91,6 @@ else
 fi
 
 log_info "Sync complete!"
-log_info "Verilog files: $VERILOG_DIR ($FILE_COUNT files)"
+log_info "Verilog files: $VERILOG_DIR ($VERILOG_COUNT files); tb .v files: $TB_COUNT"
 log_info "List files: ls -la $VERILOG_DIR"
 log_info "Push to remote: cd $READY_DIR && git push origin main"
