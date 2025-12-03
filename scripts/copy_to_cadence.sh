@@ -28,5 +28,10 @@ rsync -av --delete "$SOURCE_DIR/" "$DEST_DIR/" || log_error "Copy failed"
 
 log_info "Copy complete!"
 log_info "Destination: $DEST_DIR"
-log_info "Files: $(find "$DEST_DIR/verilog" -name "*.v" | wc -l) .v files"
+log_info "Verilog files in verilog/: $(find "$DEST_DIR/verilog" -name "*.v" | wc -l) .v files"
+if [[ -d "$DEST_DIR/tb" ]]; then
+  log_info "Verilog files in tb/: $(find "$DEST_DIR/tb" -name "*.v" | wc -l) .v files"
+else
+  log_info "No tb/ directory at destination"
+fi
 log_info "Verify: ls -la $DEST_DIR/"
