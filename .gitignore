@@ -6,3 +6,5 @@ tb/tb_cbm/build/output.out
 tb/tb_cbm/waveform.vcd
 tb/tb_mul_compare/build/output.out
 tb/tb_mul_compare/waveform.vcd
+# Ignore the auto-generated testing-ready package
+biriscv-testing-ready/
