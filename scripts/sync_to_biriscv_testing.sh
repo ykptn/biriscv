@@ -35,8 +35,20 @@ find "$REPO_ROOT/src" -name "*.v" -type f | while read -r vfile; do
   cp "$vfile" "$VERILOG_DIR/$filename"
 done
 
-FILE_COUNT=$(find "$VERILOG_DIR" -name "*.v" | wc -l)
-log_info "Copied $FILE_COUNT .v files to $VERILOG_DIR"
+# Copy tb/ directory preserving structure into $READY_DIR/tb
+if [[ -d "$REPO_ROOT/tb" ]]; then
+  log_info "Copying tb/ directory (preserving subfolders) to $READY_DIR/tb..."
+  rm -rf "$READY_DIR/tb"
+  mkdir -p "$READY_DIR/tb"
+  rsync -av --delete "$REPO_ROOT/tb/" "$READY_DIR/tb/" || log_error "Failed to copy tb/"
+fi
+
+VERILOG_COUNT=$(find "$VERILOG_DIR" -name "*.v" | wc -l)
+TB_COUNT=0
+if [[ -d "$READY_DIR/tb" ]]; then
+  TB_COUNT=$(find "$READY_DIR/tb" -name "*.v" | wc -l)
+fi
+log_info "Copied $VERILOG_COUNT .v files to $VERILOG_DIR; tb .v files: $TB_COUNT"
 
 # Initialize git if not already done
 if [[ ! -d "$READY_DIR/.git" ]]; then
@@ -75,7 +87,7 @@ if git diff --quiet --cached; then
   log_info "No changes to commit. Sync is up to date."
 else
   log_info "Committing changes..."
-  git commit -m "Auto-sync: biriscv Verilog files (flattened)"
+  git commit -m "Auto-sync: biriscv Verilog files"
 fi
 
 log_info "Sync complete!"
