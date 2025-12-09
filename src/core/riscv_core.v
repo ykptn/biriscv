@@ -583,7 +583,7 @@ u_cbm
     ,.op_b_i(cbm_opcode_rb_operand_w)
     ,.rd_idx_i(cbm_opcode_rd_idx_w)
     ,.busy_o(cbm_busy_w)
-    ,.result_valid_o(writeback_cbm_valid_w)
+    ,.done_o(writeback_cbm_valid_w)
     ,.result_o(writeback_cbm_value_w)
     ,.result_rd_idx_o(writeback_cbm_rd_idx_w)
 );
