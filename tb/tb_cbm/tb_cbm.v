@@ -110,16 +110,15 @@ always @(posedge clk) begin
                      u_dut.writeback_cbm_value_w);
         end
 
-        if (u_dut.u_cbm.state_q != 2'd0 || u_dut.u_cbm.busy_o || u_dut.u_cbm.result_valid_o) begin
-            $display("[Cycle %0d] CBM STATE: state=%0d bit_idx=%0d busy=%b rd_idx=%0d",
+        if (u_dut.u_cbm.state_q != 2'd0 || u_dut.u_cbm.busy_o || u_dut.u_cbm.done_o) begin
+            $display("[Cycle %0d] CBM STATE: state=%0d mask=0x%08h busy=%b rd_idx=%0d",
                      cycle_count,
                      u_dut.u_cbm.state_q,
-                     u_dut.u_cbm.bit_idx_q,
+                     u_dut.u_cbm.column_mask_q,
                      u_dut.u_cbm.busy_o,
                      u_dut.u_cbm.rd_idx_q);
-            $display("                 multiplicand=%0d multiplier=%0d accum=0x%016h",
+            $display("                 multiplicand=%0d accum=0x%016h",
                      u_dut.u_cbm.multiplicand_q,
-                     u_dut.u_cbm.multiplier_q,
                      u_dut.u_cbm.accumulator_q);
         end
 
