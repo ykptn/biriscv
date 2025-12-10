@@ -31,7 +31,7 @@ localparam CBM_STATE_DONE = 2'd2;
 reg [1:0]  state_q, state_d;
 reg [31:0] multiplicand_q, multiplicand_d;   // op_b_i
 reg [31:0] column_mask_q, column_mask_d;     // remaining op_a_i bits
-reg [63:0] accumulator_q, accumulator_d;
+reg [31:0] accumulator_q, accumulator_d;     // Reduced from 64 to 32 bits for energy efficiency
 reg [4:0]  rd_idx_q, rd_idx_d;
 reg        done_q, done_d;
 reg [31:0] result_q, result_d;
@@ -64,8 +64,8 @@ wire columns_empty_q     = (column_mask_q == 32'd0);
 wire [5:0] active_col_idx_w = lowest_index(column_mask_q);
 wire process_column_w    = (state_q == CBM_STATE_RUN) && !columns_empty_q;
 wire [31:0] active_col_mask_w = 32'h1 << active_col_idx_w;
-wire [63:0] shifted_multiplicand_w =
-    {32'b0, multiplicand_q} << active_col_idx_w;
+// Energy optimization: compute only the 32-bit partial product needed
+wire [31:0] shifted_multiplicand_w = multiplicand_q << active_col_idx_w;
 wire [31:0] column_mask_after_w =
     process_column_w ? (column_mask_q & ~active_col_mask_w) : column_mask_q;
 wire columns_empty_after_w = (column_mask_after_w == 32'd0);
@@ -87,7 +87,7 @@ always @ (*) begin
         begin
             multiplicand_d  = op_b_i;
             column_mask_d   = op_a_i;
-            accumulator_d   = 64'd0;
+            accumulator_d   = 32'd0;
             rd_idx_d        = rd_idx_i;
             state_d         = (op_a_i == 32'd0) ? CBM_STATE_DONE : CBM_STATE_RUN;
         end
@@ -108,7 +108,7 @@ always @ (*) begin
     CBM_STATE_DONE:
     begin
         done_d            = 1'b1;
-        result_d          = accumulator_q[31:0];
+        result_d          = accumulator_q;  // Now directly 32-bit
         result_rd_idx_d   = rd_idx_q;
         state_d           = CBM_STATE_IDLE;
     end
@@ -125,7 +125,7 @@ begin
         state_q           <= CBM_STATE_IDLE;
         multiplicand_q    <= 32'd0;
         column_mask_q     <= 32'd0;
-        accumulator_q     <= 64'd0;
+        accumulator_q     <= 32'd0;
         rd_idx_q          <= 5'd0;
         done_q            <= 1'b0;
         result_q          <= 32'd0;
