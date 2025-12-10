@@ -37,9 +37,7 @@ localparam [2:0] MULE_STATE_DONE  = 3'd4;
 // Registers / Wires
 //-----------------------------------------------------------------
 reg [  2:0]  state_q;
-reg          valid_r, valid_q;   // new
-//reg          valid_r;    old
-//reg [ 31:0]  result_r;   old
+reg          valid_r;   // Removed extra valid_q register for energy efficiency
 
 // Latched Operands
 reg [ 31:0]  a_q;
@@ -67,7 +65,6 @@ if (rst_i)
 begin
     state_q  <= MULE_STATE_IDLE;
     valid_r  <= 1'b0;
-    valid_q <= 1'b0;      // NEW
     a_q      <= 32'b0;
     b_q      <= 32'b0;
     rd_idx_q <= 5'b0;     // Initialize rd index
@@ -125,35 +122,32 @@ begin
         state_q <= MULE_STATE_IDLE;
     end
     endcase
-    valid_q <= valid_r; //  NEW
 end
 
 //-----------------------------------------------------------------
 // Combinatorial
 //-----------------------------------------------------------------
 
-// FSM controls the inputs to the 16x16 multiplier
-assign mult_a_in_w = (state_q == MULE_STATE_CALC0) ? a_q[15:0] : // A_l
-                     (state_q == MULE_STATE_CALC1) ? a_q[15:0] : // A_l
-                     (state_q == MULE_STATE_CALC2) ? a_q[31:16] : // A_h
+// Energy optimization: Gate multiplier inputs when not in use
+wire mult_active_w = (state_q == MULE_STATE_CALC0) || 
+                     (state_q == MULE_STATE_CALC1) || 
+                     (state_q == MULE_STATE_CALC2);
+
+// FSM controls the inputs to the 16x16 multiplier (gated for power savings)
+assign mult_a_in_w = mult_active_w ? 
+                     ((state_q == MULE_STATE_CALC2) ? a_q[31:16] : a_q[15:0]) : 
                      16'b0;
 
-assign mult_b_in_w = (state_q == MULE_STATE_CALC0) ? b_q[15:0] : // B_l
-                     (state_q == MULE_STATE_CALC1) ? b_q[31:16] : // B_h
-                     (state_q == MULE_STATE_CALC2) ? b_q[15:0] : // B_l
+assign mult_b_in_w = mult_active_w ?
+                     ((state_q == MULE_STATE_CALC1) ? b_q[31:16] : b_q[15:0]) :
                      16'b0;
 
 // Combinational final product from partials
-wire [31:0] result_w;                            // NEW
-assign result_w = p0_q + (p1_q << 16) + (p2_q << 16);  // NEW
+wire [31:0] result_w = p0_q + (p1_q << 16) + (p2_q << 16);
 
-// Outputs
-assign writeback_valid_o = valid_q;              // NEW
-assign writeback_value_o = result_w;             // NEW
-assign writeback_rd_idx_o = rd_idx_q;            // NEW
-
-// Outputs to issue stage
-//assign writeback_valid_o = valid_r;   old
-//assign writeback_value_o = result_r;   old
+// Outputs - direct from valid_r (removed extra pipeline stage for 1 cycle faster + power savings)
+assign writeback_valid_o = valid_r;
+assign writeback_value_o = result_w;
+assign writeback_rd_idx_o = rd_idx_q;
 
 endmodule
