@@ -6,5 +6,13 @@ tb/tb_cbm/build/output.out
 tb/tb_cbm/waveform.vcd
 tb/tb_mul_compare/build/output.out
 tb/tb_mul_compare/waveform.vcd
+tb/tb_dot_mul/build/output.out
+tb/tb_dot_mul/waveform.vcd
+tb/tb_fft_mul/build/output.out
+tb/tb_fft_mul/waveform.vcd
+tb/tb_matrix_mul/build/output.out
+tb/tb_matrix_mul/waveform.vcd
+tb/tb_poly_horner_mul/build/output.out
+tb/tb_poly_horner_mul/waveform.vcd
 # Ignore the auto-generated testing-ready package
 biriscv-testing-ready/

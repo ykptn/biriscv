@@ -1,0 +1,10 @@
+Starting FFT MUL benchmark
+VCD info: dumpfile waveform.vcd opened for output.
+Loaded 1952 bytes from tcm.bin
+RAM[0] = 0x000000001440006f
+RAM[1] = 0x0000000000000000
+RAM[2] = 0x0000000000000000
+FFT-MUL      SUM=6920   CYCLES=2147482164   ENERGY=21474317   EDP=344368292
+m
+*** FFT MUL PASS ***
+./tb_fft_mul.v:70: $finish called at 48965 (1s)
