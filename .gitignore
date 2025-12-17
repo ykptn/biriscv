@@ -14,5 +14,9 @@ tb/tb_matrix_mul/build/output.out
 tb/tb_matrix_mul/waveform.vcd
 tb/tb_poly_horner_mul/build/output.out
 tb/tb_poly_horner_mul/waveform.vcd
+tb/tb_signed_mul/build/output.out
+tb/tb_signed_mul/waveform.vcd
+tb/tb_mul_shift_signed/build/output.out
+tb/tb_mul_shift_signed/waveform.vcd
 # Ignore the auto-generated testing-ready package
 biriscv-testing-ready/
