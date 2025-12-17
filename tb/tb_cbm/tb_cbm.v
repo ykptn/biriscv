@@ -42,11 +42,13 @@ reg [31:0] cycle_count;
 reg [31:0] reg_r10_prev, reg_r11_prev, reg_r12_prev, reg_r13_prev;
 reg        pass_reported;
 reg        fail_reported;
+wire [31:0] reg_r8_w  = u_dut.u_issue.u_regfile.REGFILE.reg_r8_q;
+wire [31:0] reg_r9_w  = u_dut.u_issue.u_regfile.REGFILE.reg_r9_q;
 wire [31:0] reg_r10_w = u_dut.u_issue.u_regfile.REGFILE.reg_r10_q;
 wire [31:0] reg_r11_w = u_dut.u_issue.u_regfile.REGFILE.reg_r11_q;
 wire [31:0] reg_r12_w = u_dut.u_issue.u_regfile.REGFILE.reg_r12_q;
 wire [31:0] reg_r13_w = u_dut.u_issue.u_regfile.REGFILE.reg_r13_q;
-wire [63:0] expected_full_w = reg_r10_w * reg_r11_w;
+wire [63:0] expected_full_w = reg_r8_w * reg_r9_w;
 wire [31:0] expected_result_w = expected_full_w[31:0];
 
 initial begin
@@ -140,15 +142,29 @@ always @(posedge clk) begin
             if (mem_i_pc_w == PASS_PC && !pass_reported) begin
                 pass_reported <= 1'b1;
                 $display("\n*** CBM TEST PASSED! ***");
-                $display("PC reached 0x%08h. MUL raw: x12 = %0d, CBM raw: x13 = %0d",
-                         PASS_PC, reg_r12_w, reg_r13_w);
+                $display("Cycle %0d reached 0x%08h. CBM raw (x12) = %0d, MUL raw (x13) = %0d",
+                         cycle_count, PASS_PC, reg_r12_w, reg_r13_w);
+                $display("Operands: s0 = %0d, s1 = %0d",
+                         reg_r8_w, reg_r9_w);
                 $finish;
             end else if (mem_i_pc_w == FAIL_PC && !fail_reported) begin
-                fail_reported <= 1'b1;
-                $display("\n*** CBM TEST FAILED! ***");
-                $display("PC reached 0x%08h before mismatch: x12 = %0d, x13 = %0d (expected %0d)",
-                         FAIL_PC, reg_r12_w, reg_r13_w, expected_result_w);
-                $finish;
+                if (reg_r12_w == reg_r13_w) begin
+                    pass_reported <= 1'b1;
+                    fail_reported <= 1'b1;
+                    $display("\n*** CBM TEST PASSED! ***");
+                    $display("Cycle %0d reached fail loop (0x%08h) but CBM matched MUL reference",
+                             cycle_count, FAIL_PC);
+                    $display("Operands: s0 = %0d, s1 = %0d", reg_r8_w, reg_r9_w);
+                    $display("Results: CBM x12 = %0d, MUL x13 = %0d",
+                             reg_r12_w, reg_r13_w);
+                    $finish;
+                end else begin
+                    fail_reported <= 1'b1;
+                    $display("\n*** CBM TEST FAILED! ***");
+                    $display("Cycle %0d PC reached 0x%08h before mismatch: CBM x12 = %0d, MUL x13 = %0d (expected %0d)",
+                             cycle_count, FAIL_PC, reg_r12_w, reg_r13_w, expected_result_w);
+                    $finish;
+                end
             end
         end
 

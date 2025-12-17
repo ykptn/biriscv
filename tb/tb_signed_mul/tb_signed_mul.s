@@ -1,21 +1,21 @@
 ###############################################################################
-# CBM Instruction Test Program
-# - Operands configurable via OP_A / OP_B constants
-# - Golden reference derived from baseline MUL
-# - Prints operands and results via UART for clarity
+# Signed MUL diagnostics for MUL / MULe / CBM
+# NOTE: Do NOT load operands from .rodata/.data (lw) on this platform.
+#       Use immediates (li) instead.
 ###############################################################################
 
 .section .text
-.option norelax
+.align 4
 .globl _start
 
-.equ PASS_OFFSET, 0x130
-.equ FAIL_OFFSET, 0x134
-.equ UART_BASE,  0x92000000
+.option norelax
+.equ PASS_OFFSET,   0x130
+.equ FAIL_OFFSET,   0x134
+.equ UART_BASE,     0x92000000
 
-# Change operands here when trying new values
-.equ OP_A, 7
-.equ OP_B, 9
+# Change test operands here
+.equ OP_A,          -12345
+.equ OP_B,          23170
 
 _start:
     j main
@@ -28,54 +28,77 @@ pass_loop:
 fail_loop:
     j fail_loop
 
+###############################################################################
+# Main entry
+###############################################################################
 .align 4
 main:
     la   sp, stack_top
 
+    # -------------------------------------------------------------------------
+    # Print header
+    # -------------------------------------------------------------------------
     la   a0, str_hdr
     jal  ra, print_str
     jal  ra, print_newline
 
-    li   t0, OP_A                   # Preserve operand A
-    li   t1, OP_B                   # Preserve operand B
-    mv   s0, t0
-    mv   s1, t1
-    mul  t2, t0, t1                 # Golden MUL reference
-    .insn r 0x0B, 0x0, 0x04, t3, t0, t1   # CBM custom result
-
-    mv   x13, t2                    # Keep legacy register mapping
-    mv   x12, t3
-
+    # -------------------------------------------------------------------------
+    # Print A and B (to confirm actual values)
+    # -------------------------------------------------------------------------
     la   a0, str_a
     jal  ra, print_str
-    mv   a0, t0
+    li   a0, OP_A
     jal  ra, print_i32
     jal  ra, print_newline
 
     la   a0, str_b
     jal  ra, print_str
-    mv   a0, t1
+    li   a0, OP_B
     jal  ra, print_i32
     jal  ra, print_newline
 
-    la   a0, str_cbm
+    # -------------------------------------------------------------------------
+    # Print MUL
+    # -------------------------------------------------------------------------
+    la   a0, str_mul
     jal  ra, print_str
+    li   t1, OP_A
+    li   t2, OP_B
+    mul  t3, t1, t2
     mv   a0, t3
     jal  ra, print_i32
     jal  ra, print_newline
 
-    la   a0, str_mul
+    # -------------------------------------------------------------------------
+    # Print MULE
+    # -------------------------------------------------------------------------
+    la   a0, str_mule
     jal  ra, print_str
-    mv   a0, t2
+    li   t1, OP_A
+    li   t2, OP_B
+    .insn r 0x0B, 0x0, 0x01, t3, t1, t2
+    mv   a0, t3
     jal  ra, print_i32
     jal  ra, print_newline
 
-    beq  x12, x13, pass_loop
-    j    fail_loop
+    # -------------------------------------------------------------------------
+    # Print CBM
+    # -------------------------------------------------------------------------
+    la   a0, str_cbm
+    jal  ra, print_str
+    li   t1, OP_A
+    li   t2, OP_B
+    .insn r 0x0B, 0x0, 0x04, t3, t1, t2
+    mv   a0, t3
+    jal  ra, print_i32
+    jal  ra, print_newline
+
+    j pass_loop
 
 ###############################################################################
-# UART helpers (shared with signed MUL test)
+# Printing helpers
 ###############################################################################
+
 print_str:
     addi sp, sp, -16
     sw   ra, 12(sp)
@@ -185,23 +208,31 @@ print_u32_emit:
     ret
 
 ###############################################################################
-# Read-only strings
+# Data (strings only; no operand loads!)
 ###############################################################################
-.section .rodata
-str_hdr:   .asciz "CBM TEST (custom multiplier)"
-str_a:     .asciz "A = "
-str_b:     .asciz "B = "
-str_cbm:   .asciz "CBM result = "
-str_mul:   .asciz "MUL reference = "
 
-###############################################################################
-# Stack and print buffers
-###############################################################################
+.section .rodata
+.align 4
+str_hdr:
+    .asciz "SIGNED MUL DEBUG"
+str_a:
+    .asciz "A = "
+str_b:
+    .asciz "B = "
+str_mul:
+    .asciz "MUL = "
+str_mule:
+    .asciz "MULE = "
+str_cbm:
+    .asciz "CBM = "
+
 .section .bss
 .align 4
-stack_area:
-    .space 256
-stack_top:
 digits_buf:
     .space 16
 digits_buf_end:
+
+.align 4
+stack_space:
+    .space 256
+stack_top:

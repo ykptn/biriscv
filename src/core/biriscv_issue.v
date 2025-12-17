@@ -778,7 +778,7 @@ begin
     if ((pipe0_load_e1_w || pipe0_store_e1_w || pipe1_load_e1_w || pipe1_store_e1_w ) && (issue_a_mul_w || issue_a_div_w || issue_a_csr_w || issue_a_mule_w || issue_a_cbm_w))
         scoreboard_r = 32'hFFFFFFFF;
 
-    // Stall
+    // Stall - no issues...
     if (lsu_stall_i || stall_w || div_pending_q || csr_pending_q)
         ;
         

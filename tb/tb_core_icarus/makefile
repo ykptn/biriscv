@@ -2,7 +2,10 @@
 # Variables: Program ELF
 ###############################################################################
 ELF_FILE ?= test.elf
+ELF_SRC  ?= test_mule.s
 
+AS      := riscv64-unknown-elf-as
+LD      := riscv64-unknown-elf-ld
 OBJCOPY ?= riscv64-unknown-elf-objcopy
 ifeq ($(shell which $(OBJCOPY)),)
   ${error $(OBJCOPY) missing from PATH}
@@ -10,6 +13,8 @@ endif
 ifeq ($(shell which iverilog),)
   ${error iverilog missing from PATH - Icarus Verilog required}
 endif
+ASFLAGS ?= -march=rv32im -mabi=ilp32
+LDFLAGS ?= -m elf32lriscv -Ttext 0x80000000
 
 
 ###############################################################################
@@ -35,6 +40,7 @@ VFLAGS      += -Dverilog_sim
 # Variables: Lists of objects, source and deps
 ###############################################################################
 BUILD_DIR      ?= build/
+ELF_OBJ        := $(BUILD_DIR)/test_program.o
 
 ###############################################################################
 # Rules
@@ -43,6 +49,12 @@ all: run
 
 $(BUILD_DIR):
 	@mkdir -p $@
+
+$(ELF_OBJ): $(ELF_SRC) | $(BUILD_DIR)
+	$(AS) $(ASFLAGS) $< -o $@
+
+$(ELF_FILE): $(ELF_OBJ)
+	$(LD) $(LDFLAGS) $< -o $@
 
 $(BUILD_DIR)/tcm.bin: $(ELF_FILE) | $(BUILD_DIR)
 	$(OBJCOPY) $< -O binary $@
@@ -59,4 +71,3 @@ view:
 
 clean:
 	rm -rf $(BUILD_DIR) *.vcd
-
