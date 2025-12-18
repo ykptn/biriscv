@@ -1,0 +1,26 @@
+# Compiling Verilog (POLY HORNER MUL benchmark)
+iverilog -I../../src/core -I. -DTRACE=1 -Dverilog_sim -o build//output.out ../../src/core/biriscv_alu.v ../../src/core/biriscv_csr_regfile.v ../../src/core/biriscv_csr.v ../../src/core/biriscv_decoder.v ../../src/core/biriscv_decode.v ../../src/core/biriscv_defs.v ../../src/core/biriscv_divider.v ../../src/core/biriscv_exec.v ../../src/core/biriscv_fetch.v ../../src/core/biriscv_frontend.v ../../src/core/biriscv_issue.v ../../src/core/biriscv_lsu.v ../../src/core/biriscv_mmu.v ../../src/core/biriscv_multiplier_efficient.v ../../src/core/biriscv_multiplier.v ../../src/core/biriscv_npc.v ../../src/core/biriscv_pipe_ctrl.v ../../src/core/biriscv_regfile.v ../../src/core/biriscv_trace_sim.v ../../src/core/biriscv_xilinx_2r1w.v ../../src/core/column_bypass_multiplier.v ../../src/core/riscv_core.v ./tb_poly_horner_mul.v ../tb_mul/tcm_mem.v ../tb_mul/tcm_mem_ram.v
+vvp build//output.out -vcd
+Starting POLY HORNER MUL EDP benchmark
+VCD info: dumpfile waveform.vcd opened for output.
+Loaded 1648 bytes from tcm.bin
+RAM[0] = 0x000000001440006f
+RAM[1] = 0x0000000000000000
+RAM[2] = 0x0000000000000000
+MUL-HORNER
+VAL=321
+CYCLES=103
+ENERGY(pJ)=36
+EDP=3708
+MULE-HORNER
+VAL=321
+CYCLES=117
+ENERGY(pJ)=40
+EDP=4680
+CBM-HORNER
+VAL=321
+CYCLES=122
+ENERGY(pJ)=42
+EDP=5124
+
+*** POLY HORNER MUL EDP PASS ***

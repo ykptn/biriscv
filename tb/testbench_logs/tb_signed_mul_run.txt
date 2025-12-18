@@ -1,0 +1,17 @@
+# Compiling Verilog (signed MUL diagnostics)
+iverilog -I../../src/core -I. -DTRACE=1 -Dverilog_sim -s tb_signed_mul -o build//output.out ../../src/core/biriscv_alu.v ../../src/core/biriscv_csr_regfile.v ../../src/core/biriscv_csr.v ../../src/core/biriscv_decoder.v ../../src/core/biriscv_decode.v ../../src/core/biriscv_defs.v ../../src/core/biriscv_divider.v ../../src/core/biriscv_exec.v ../../src/core/biriscv_fetch.v ../../src/core/biriscv_frontend.v ../../src/core/biriscv_issue.v ../../src/core/biriscv_lsu.v ../../src/core/biriscv_mmu.v ../../src/core/biriscv_multiplier_efficient.v ../../src/core/biriscv_multiplier.v ../../src/core/biriscv_npc.v ../../src/core/biriscv_pipe_ctrl.v ../../src/core/biriscv_regfile.v ../../src/core/biriscv_trace_sim.v ../../src/core/biriscv_xilinx_2r1w.v ../../src/core/column_bypass_multiplier.v ../../src/core/riscv_core.v ./tb_signed_mul.v ../tb_mul/tcm_mem.v ../tb_mul/tcm_mem_ram.v
+vvp build//output.out -vcd
+Starting signed MUL diagnostic testbench
+VCD info: dumpfile waveform.vcd opened for output.
+Loaded 1248 bytes from tcm.bin
+RAM[0] = 0x000000001440006f
+RAM[1] = 0x0000000000000000
+RAM[2] = 0x0000000000000000
+SIGNED MUL DEBUG
+A = -12345
+B = 23170
+MUL = -286033650
+MULE = -286033650
+CBM = -286033650
+
+*** SIGNED MUL TEST PASS ***

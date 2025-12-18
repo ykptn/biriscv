@@ -1,0 +1,1 @@
+makefile:13: *** VERILATOR_SRC must be set to VERILATOR_INSTALL/include.  Stop.
