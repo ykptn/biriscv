@@ -1,0 +1,90 @@
+# Compiling verilog
+iverilog -I../../src/core -I. -DTRACE=1 -Dverilog_sim -o build//output.out ../../src/core/biriscv_alu.v ../../src/core/biriscv_csr_regfile.v ../../src/core/biriscv_csr.v ../../src/core/biriscv_decoder.v ../../src/core/biriscv_decode.v ../../src/core/biriscv_defs.v ../../src/core/biriscv_divider.v ../../src/core/biriscv_exec.v ../../src/core/biriscv_fetch.v ../../src/core/biriscv_frontend.v ../../src/core/biriscv_issue.v ../../src/core/biriscv_lsu.v ../../src/core/biriscv_mmu.v ../../src/core/biriscv_multiplier_efficient.v ../../src/core/biriscv_multiplier.v ../../src/core/biriscv_npc.v ../../src/core/biriscv_pipe_ctrl.v ../../src/core/biriscv_regfile.v ../../src/core/biriscv_trace_sim.v ../../src/core/biriscv_xilinx_2r1w.v ../../src/core/column_bypass_multiplier.v ../../src/core/riscv_core.v ./tb_top.v ./tcm_mem_ram.v ./tcm_mem.v
+vvp build//output.out -vcd
+Starting bench
+VCD info: dumpfile waveform.vcd opened for output.
+Loaded 512 bytes from tcm.bin
+RAM[0] = 0x000000131000006f
+RAM[1] = 0x0000001300000013
+RAM[2] = 0x0000001300000013
+[Cycle 0] PC = 0x80000000
+[Cycle 1] FETCH: PC=0x80000000, Inst=0x000000131000006f
+[Cycle 2] FETCH: PC=0x80000000, Inst=0x000000131000006f
+[Cycle 3] PC = 0x80000008
+[Cycle 3] ISSUE: opcode_a=0x1000006f (valid=1, issue=1), opcode_b=0x00000013 (valid=1, issue=0)
+[Cycle 3] FETCH: PC=0x80000008, Inst=0x000000131000006f
+[Cycle 4] PC = 0x80000100
+[Cycle 5] FETCH: PC=0x80000100, Inst=0x0090059300700513
+[Cycle 6] FETCH: PC=0x80000100, Inst=0x0090059300700513
+[Cycle 7] PC = 0x80000108
+[Cycle 7] ISSUE: opcode_a=0x00700513 (valid=1, issue=1), opcode_b=0x00900593 (valid=1, issue=1)
+[Cycle 7] FETCH: PC=0x80000108, Inst=0x0090059300700513
+[Cycle 8] FETCH: PC=0x80000108, Inst=0x02b5060b02b506b3
+[Cycle 8] MULE: state=0, a=0, b=0, mult_a=0, mult_b=0, mult_out=0
+              p0=0, p1=0, p2=0, valid=0
+[Cycle 9] MULE: state=0, a=0, b=0, mult_a=0, mult_b=0, mult_out=0
+              p0=0, p1=0, p2=0, valid=0
+[Cycle 9] FETCH: PC=0x80000108, Inst=0x02b5060b02b506b3
+[Cycle 10] FETCH: PC=0x80000110, Inst=0x02b5060b02b506b3
+[Cycle 10] MULE: state=0, a=0, b=0, mult_a=0, mult_b=0, mult_out=0
+              p0=0, p1=0, p2=0, valid=0
+[Cycle 10] PC = 0x80000110
+[Cycle 10] ISSUE: opcode_a=0x02b506b3 (valid=1, issue=1), opcode_b=0x02b5060b (valid=1, issue=0)
+[Cycle 11] MULE: state=0, a=0, b=0, mult_a=0, mult_b=0, mult_out=0
+              p0=0, p1=0, p2=0, valid=0
+[Cycle 11] Register update detected:
+      x10 (a0) = 7 (prev: 0)
+      x11 (a1) = 9 (prev: 0)
+      x12 (a2) = 0 (prev: 0)
+      x13 (a3) = 0 (prev: 0)
+[Cycle 12] FETCH: PC=0x80000110, Inst=0x0000001300000013
+[Cycle 12] MULE: state=1, a=7, b=9, mult_a=7, mult_b=9, mult_out=63
+              p0=0, p1=0, p2=0, valid=0
+[Cycle 13] MULE: state=2, a=7, b=9, mult_a=7, mult_b=0, mult_out=0
+              p0=63, p1=0, p2=0, valid=0
+[Cycle 13] FETCH: PC=0x80000110, Inst=0x0000001300000013
+[Cycle 14] FETCH: PC=0x80000110, Inst=0x0000001300000013
+[Cycle 14] MULE: state=3, a=7, b=9, mult_a=0, mult_b=9, mult_out=0
+              p0=63, p1=0, p2=0, valid=0
+[Cycle 14] Register update detected:
+      x10 (a0) = 7 (prev: 7)
+      x11 (a1) = 9 (prev: 9)
+      x12 (a2) = 0 (prev: 0)
+      x13 (a3) = 63 (prev: 0)
+[Cycle 15] MULE: state=4, a=7, b=9, mult_a=0, mult_b=0, mult_out=0
+              p0=63, p1=0, p2=0, valid=0
+[Cycle 15] PC = 0x80000118
+[Cycle 15] FETCH: PC=0x80000118, Inst=0x0000001300000013
+[Cycle 16] FETCH: PC=0x80000118, Inst=0x0000001300000013
+[Cycle 16] MULE: state=0, a=7, b=9, mult_a=0, mult_b=0, mult_out=0
+              p0=63, p1=0, p2=0, valid=1
+              WRITEBACK: mule_valid=1, mule_value=63
+[Cycle 17] MULE: state=0, a=7, b=9, mult_a=0, mult_b=0, mult_out=0
+              p0=63, p1=0, p2=0, valid=0
+[Cycle 17] Register update detected:
+      x10 (a0) = 7 (prev: 7)
+      x11 (a1) = 9 (prev: 9)
+      x12 (a2) = 63 (prev: 0)
+      x13 (a3) = 63 (prev: 63)
+[Cycle 17] PC = 0x80000120
+[Cycle 17] ISSUE: opcode_a=0x00000013 (valid=1, issue=1), opcode_b=0x00000013 (valid=1, issue=1)
+[Cycle 17] FETCH: PC=0x80000120, Inst=0x0000001300000013
+[Cycle 18] FETCH: PC=0x80000120, Inst=0x00d6146300000013
+[Cycle 18] MULE: state=0, a=7, b=9, mult_a=0, mult_b=0, mult_out=0
+              p0=63, p1=0, p2=0, valid=0
+[Cycle 19] MULE: state=0, a=7, b=9, mult_a=0, mult_b=0, mult_out=0
+              p0=63, p1=0, p2=0, valid=0
+[Cycle 19] FETCH: PC=0x80000120, Inst=0x00d6146300000013
+[Cycle 20] FETCH: PC=0x80000128, Inst=0x00d6146300000013
+[Cycle 20] MULE: state=0, a=7, b=9, mult_a=0, mult_b=0, mult_out=0
+              p0=63, p1=0, p2=0, valid=0
+[Cycle 20] PC = 0x80000128
+[Cycle 21] FETCH: PC=0x80000128, Inst=0x0000006f0000006f
+[Cycle 22] FETCH: PC=0x80000128, Inst=0x0000006f0000006f
+[Cycle 23] PC = 0x80000130
+
+*** TEST PASSED! ***
+PC reached 0x80000130 but mule computed correctly:
+x12 (MULE) = 63, x13 (MUL) = 63
+Test logic updated to check register values instead of PC
+[Cycle 23] FETCH: PC=0x80000130, Inst=0x0000006f0000006f

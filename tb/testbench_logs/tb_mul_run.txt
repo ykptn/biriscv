@@ -1,0 +1,57 @@
+# Compiling Verilog (MUL test)
+iverilog -I../../src/core -I. -DTRACE=1 -Dverilog_sim -o build//output.out ../../src/core/biriscv_alu.v ../../src/core/biriscv_csr_regfile.v ../../src/core/biriscv_csr.v ../../src/core/biriscv_decoder.v ../../src/core/biriscv_decode.v ../../src/core/biriscv_defs.v ../../src/core/biriscv_divider.v ../../src/core/biriscv_exec.v ../../src/core/biriscv_fetch.v ../../src/core/biriscv_frontend.v ../../src/core/biriscv_issue.v ../../src/core/biriscv_lsu.v ../../src/core/biriscv_mmu.v ../../src/core/biriscv_multiplier_efficient.v ../../src/core/biriscv_multiplier.v ../../src/core/biriscv_npc.v ../../src/core/biriscv_pipe_ctrl.v ../../src/core/biriscv_regfile.v ../../src/core/biriscv_trace_sim.v ../../src/core/biriscv_xilinx_2r1w.v ../../src/core/column_bypass_multiplier.v ../../src/core/riscv_core.v ./tb_mul.v ./tcm_mem_ram.v ./tcm_mem.v
+vvp build//output.out -vcd
+Starting MUL testbench
+VCD info: dumpfile waveform.vcd opened for output.
+Loaded 512 bytes from tcm.bin
+RAM[0] = 0x000000131000006f
+RAM[1] = 0x0000001300000013
+RAM[2] = 0x0000001300000013
+[Cycle 0] PC = 0x80000000
+[Cycle 1] FETCH: PC=0x80000000, Inst=0x000000131000006f
+[Cycle 2] FETCH: PC=0x80000000, Inst=0x000000131000006f
+[Cycle 3] PC = 0x80000008
+[Cycle 3] FETCH: PC=0x80000008, Inst=0x000000131000006f
+[Cycle 4] PC = 0x80000100
+[Cycle 5] FETCH: PC=0x80000100, Inst=0x0090059300700513
+[Cycle 6] FETCH: PC=0x80000100, Inst=0x0090059300700513
+[Cycle 7] PC = 0x80000108
+[Cycle 7] FETCH: PC=0x80000108, Inst=0x0090059300700513
+[Cycle 8] FETCH: PC=0x80000108, Inst=0x0000001303f00693
+[Cycle 9] FETCH: PC=0x80000108, Inst=0x0000001303f00693
+[Cycle 10] FETCH: PC=0x80000110, Inst=0x0000001303f00693
+[Cycle 10] PC = 0x80000110
+[Cycle 11] Register update detected:
+      x10 (a0) = 7 (prev: 0)
+      x11 (a1) = 9 (prev: 0)
+      x12 (a2) = 0 (prev: 0)
+      x13 (a3) = 0 (prev: 0)
+[Cycle 11] FETCH: PC=0x80000110, Inst=0x02b5063300000013
+[Cycle 12] FETCH: PC=0x80000110, Inst=0x02b5063300000013
+[Cycle 13] PC = 0x80000118
+[Cycle 13] FETCH: PC=0x80000118, Inst=0x02b5063300000013
+[Cycle 14] FETCH: PC=0x80000118, Inst=0x0000001300000013
+[Cycle 14] Register update detected:
+      x10 (a0) = 7 (prev: 7)
+      x11 (a1) = 9 (prev: 9)
+      x12 (a2) = 0 (prev: 0)
+      x13 (a3) = 63 (prev: 0)
+[Cycle 15] FETCH: PC=0x80000118, Inst=0x0000001300000013
+[Cycle 16] FETCH: PC=0x80000120, Inst=0x0000001300000013
+[Cycle 16] PC = 0x80000120
+[Cycle 17] Register update detected:
+      x10 (a0) = 7 (prev: 7)
+      x11 (a1) = 9 (prev: 9)
+      x12 (a2) = 63 (prev: 0)
+      x13 (a3) = 63 (prev: 63)
+[Cycle 17] FETCH: PC=0x80000120, Inst=0x0000001300000013
+[Cycle 18] FETCH: PC=0x80000120, Inst=0x0000001300000013
+[Cycle 19] PC = 0x80000128
+[Cycle 19] FETCH: PC=0x80000128, Inst=0x0000001300000013
+[Cycle 20] FETCH: PC=0x80000128, Inst=0x00d6146300000013
+[Cycle 21] FETCH: PC=0x80000128, Inst=0x00d6146300000013
+[Cycle 22] FETCH: PC=0x80000130, Inst=0x00d6146300000013
+[Cycle 22] PC = 0x80000130
+
+*** TEST PASSED! ***
+PC reached 0x80000130 and MUL matched software expectation: x12 = 63 (expected 63)
