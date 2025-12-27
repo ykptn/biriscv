@@ -550,8 +550,9 @@ u_mul
     ,.writeback_value_o(writeback_mul_value_w)
 );
 
-biriscv_multiplier_efficient 
-u_mule
+// Second MUL unit uses efficient multiplier to provide completion handshake
+biriscv_multiplier_efficient
+u_mul2
 (
     // Inputs
      .clk_i(clk_i)
@@ -568,9 +569,9 @@ u_mule
     //,.hold_i(mule_hold_w) // This comes from u_issue
 
     // Outputs
-    ,.writeback_valid_o(writeback_mule_valid_w) // Goes to u_issue
-    ,.writeback_value_o(writeback_mule_value_w) // Goes to u_issue
-    ,.writeback_rd_idx_o(writeback_mule_rd_idx_w) // Goes to u_issue
+    ,.writeback_valid_o(writeback_mule_valid_w)
+    ,.writeback_value_o(writeback_mule_value_w)
+    ,.writeback_rd_idx_o(writeback_mule_rd_idx_w)
 );
 
 // CBM disabled: tie off CBM signals

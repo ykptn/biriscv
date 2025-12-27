@@ -343,7 +343,8 @@ wire       issue_a_lsu_w      = (slot0_valid_r ? fetch0_instr_lsu_i      : fetch
 wire       issue_a_branch_w   = (slot0_valid_r ? fetch0_instr_branch_i   : fetch1_instr_branch_i);
 wire       issue_a_mul_w      = (slot0_valid_r ? fetch0_instr_mul_i      : fetch1_instr_mul_i);
 wire       issue_a_div_w      = (slot0_valid_r ? fetch0_instr_div_i      : fetch1_instr_div_i);
-wire       issue_a_mule_w     = (slot0_valid_r ? fetch0_instr_mule_i     : fetch1_instr_mule_i); // use mule
+// Repurpose MULE path to serve as second MUL unit (pipe1)
+wire       issue_a_mule_w     = 1'b0;
 wire       issue_a_cbm_w      = (slot0_valid_r ? fetch0_instr_cbm_i      : fetch1_instr_cbm_i);
 wire       issue_a_csr_w      = (slot0_valid_r ? fetch0_instr_csr_i      : fetch1_instr_csr_i);
 wire       issue_a_invalid_w  = (slot0_valid_r ? fetch0_instr_invalid_i  : fetch1_instr_invalid_i);
@@ -675,7 +676,7 @@ if (rst_i)
     mule_pending_q <= 1'b0;
 else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
     mule_pending_q <= 1'b0;
-else if (mule_opcode_valid_o && issue_a_mule_w)
+else if (mule_opcode_valid_o && issue_b_mul_w)
     mule_pending_q <= 1'b1;
 else if (writeback_mule_valid_i)
     mule_pending_q <= 1'b0;
@@ -688,8 +689,8 @@ if (rst_i)
     mule_rd_q <= 5'b0;
 else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
     mule_rd_q <= 5'b0;
-else if (mule_opcode_valid_o && issue_a_mule_w)
-    mule_rd_q <= issue_a_rd_idx_w;
+else if (mule_opcode_valid_o && issue_b_mul_w)
+    mule_rd_q <= issue_b_rd_idx_w;
 else if (writeback_mule_valid_i)
     mule_rd_q <= 5'b0;
 
@@ -733,7 +734,8 @@ wire dual_issue_ok_w =   enable_dual_issue_w &&  // Second pipe switched on
                         (((issue_a_exec_w | issue_a_lsu_w | issue_a_mul_w) && issue_b_exec_w)   ||
                          ((issue_a_exec_w | issue_a_lsu_w | issue_a_mul_w) && issue_b_branch_w) ||
                          ((issue_a_exec_w | issue_a_mul_w) && issue_b_lsu_w)                    ||
-                         ((issue_a_exec_w | issue_a_lsu_w) && issue_b_mul_w)
+                         ((issue_a_exec_w | issue_a_lsu_w) && issue_b_mul_w)                    ||
+                         (issue_a_mul_w && issue_b_mul_w)
                          ) && ~take_interrupt_i;
 
 always @ *
@@ -817,9 +819,11 @@ end
 
 assign lsu_opcode_valid_o   = (pipe1_mux_lsu_r ? opcode_b_issue_r : opcode_a_issue_r) & ~take_interrupt_i;
 assign exec0_opcode_valid_o = opcode_a_issue_r;
-assign mul_opcode_valid_o   = enable_muldiv_w & (pipe1_mux_mul_r ? opcode_b_issue_r : opcode_a_issue_r);
+// First MUL unit: driven by pipe0 when a MUL is issued
+assign mul_opcode_valid_o   = enable_muldiv_w & (opcode_a_issue_r & issue_a_mul_w);
 assign div_opcode_valid_o   = enable_muldiv_w & (opcode_a_issue_r);
-assign mule_opcode_valid_o  = enable_muldiv_w & (opcode_a_issue_r & issue_a_mule_w);
+// Second MUL unit: driven by pipe1 when a MUL is issued in slot B
+assign mule_opcode_valid_o  = enable_muldiv_w & (opcode_b_issue_r & issue_b_mul_w);
 assign interrupt_inhibit_o  = csr_pending_q || issue_a_csr_w;
 
 assign exec1_opcode_valid_o = opcode_b_issue_r;
@@ -1046,26 +1050,28 @@ assign lsu_opcode_invalid_o     = 1'b0;
 //-------------------------------------------------------------
 // Multiply
 //-------------------------------------------------------------
-assign mul_opcode_opcode_o      = pipe1_mux_mul_r ? opcode1_opcode_o     : opcode0_opcode_o;
-assign mul_opcode_pc_o          = pipe1_mux_mul_r ? opcode1_pc_o         : opcode0_pc_o;
-assign mul_opcode_rd_idx_o      = pipe1_mux_mul_r ? opcode1_rd_idx_o     : opcode0_rd_idx_o;
-assign mul_opcode_ra_idx_o      = pipe1_mux_mul_r ? opcode1_ra_idx_o     : opcode0_ra_idx_o;
-assign mul_opcode_rb_idx_o      = pipe1_mux_mul_r ? opcode1_rb_idx_o     : opcode0_rb_idx_o;
-assign mul_opcode_ra_operand_o  = pipe1_mux_mul_r ? opcode1_ra_operand_o : opcode0_ra_operand_o;
-assign mul_opcode_rb_operand_o  = pipe1_mux_mul_r ? opcode1_rb_operand_o : opcode0_rb_operand_o;
-assign mul_opcode_invalid_o     = 1'b0;
+// Primary MUL unit (pipe0) always uses slot A opcodes
+assign mul_opcode_opcode_o      = opcode0_opcode_o;
+assign mul_opcode_pc_o          = opcode0_pc_o;
+assign mul_opcode_rd_idx_o      = opcode0_rd_idx_o;
+assign mul_opcode_ra_idx_o      = opcode0_ra_idx_o;
+assign mul_opcode_rb_idx_o      = opcode0_rb_idx_o;
+assign mul_opcode_ra_operand_o  = opcode0_ra_operand_o;
+assign mul_opcode_rb_operand_o  = opcode0_rb_operand_o;
+assign mul_opcode_invalid_o     = opcode_a_issue_r && issue_a_invalid_w;
 
 //-------------------------------------------------------------
 // MULE unit
 //-------------------------------------------------------------
-assign mule_opcode_opcode_o     = opcode0_opcode_o;
-assign mule_opcode_pc_o         = opcode0_pc_o;
-assign mule_opcode_rd_idx_o     = opcode0_rd_idx_o;
-assign mule_opcode_ra_idx_o     = opcode0_ra_idx_o;
-assign mule_opcode_rb_idx_o     = opcode0_rb_idx_o;
-assign mule_opcode_ra_operand_o = opcode0_ra_operand_o;
-assign mule_opcode_rb_operand_o = opcode0_rb_operand_o;
-assign mule_opcode_invalid_o    = opcode_a_issue_r && issue_a_invalid_w;
+// Second MUL unit takes pipe1 (slot B) opcodes
+assign mule_opcode_opcode_o     = opcode1_opcode_o;
+assign mule_opcode_pc_o         = opcode1_pc_o;
+assign mule_opcode_rd_idx_o     = opcode1_rd_idx_o;
+assign mule_opcode_ra_idx_o     = opcode1_ra_idx_o;
+assign mule_opcode_rb_idx_o     = opcode1_rb_idx_o;
+assign mule_opcode_ra_operand_o = opcode1_ra_operand_o;
+assign mule_opcode_rb_operand_o = opcode1_rb_operand_o;
+assign mule_opcode_invalid_o    = opcode_b_issue_r && issue_b_invalid_w;
 
 assign cbm_opcode_valid_o     = enable_muldiv_w & (opcode_a_issue_r & issue_a_cbm_w);
 assign cbm_opcode_opcode_o    = opcode0_opcode_o;

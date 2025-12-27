@@ -223,8 +223,8 @@ assign csr_o =      ((opcode_i & `INST_ECALL_MASK) == `INST_ECALL)            ||
                     ((opcode_i & `INST_SFENCE_MASK) == `INST_SFENCE)          ||
                     invalid_w || fetch_fault_i;
                     
-assign mule_o =     enable_muldiv_i &&
-                    (((opcode_i & `INST_MULE_MASK) == `INST_MULE));
+// MULE disabled in 2-standard branch
+assign mule_o = 1'b0;
 
 // CBM disabled
 assign cbm_o  = 1'b0;            
