@@ -573,20 +573,11 @@ u_mule
     ,.writeback_rd_idx_o(writeback_mule_rd_idx_w) // Goes to u_issue
 );
 
-column_bypass_multiplier
-u_cbm
-(
-     .clk_i(clk_i)
-    ,.rst_i(rst_i)
-    ,.start_i(cbm_opcode_valid_w)
-    ,.op_a_i(cbm_opcode_ra_operand_w)
-    ,.op_b_i(cbm_opcode_rb_operand_w)
-    ,.rd_idx_i(cbm_opcode_rd_idx_w)
-    ,.busy_o(cbm_busy_w)
-    ,.done_o(writeback_cbm_valid_w)
-    ,.result_o(writeback_cbm_value_w)
-    ,.result_rd_idx_o(writeback_cbm_rd_idx_w)
-);
+// CBM disabled: tie off CBM signals
+assign cbm_busy_w             = 1'b0;
+assign writeback_cbm_valid_w  = 1'b0;
+assign writeback_cbm_value_w  = 32'b0;
+assign writeback_cbm_rd_idx_w = 5'b0;
 
 
 biriscv_divider

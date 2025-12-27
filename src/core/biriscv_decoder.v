@@ -226,7 +226,7 @@ assign csr_o =      ((opcode_i & `INST_ECALL_MASK) == `INST_ECALL)            ||
 assign mule_o =     enable_muldiv_i &&
                     (((opcode_i & `INST_MULE_MASK) == `INST_MULE));
 
-assign cbm_o  =     enable_muldiv_i &&
-                    (((opcode_i & `INST_CBM_MASK)  == `INST_CBM));            
+// CBM disabled
+assign cbm_o  = 1'b0;            
 
 endmodule
