@@ -550,8 +550,8 @@ u_mul
     ,.writeback_value_o(writeback_mul_value_w)
 );
 
-// Second MUL unit uses efficient multiplier to provide completion handshake
-biriscv_multiplier_efficient
+// Second MUL unit - now using standard multiplier (same as u_mul)
+biriscv_multiplier
 u_mul2
 (
     // Inputs
@@ -566,13 +566,31 @@ u_mul2
     ,.opcode_rb_idx_i(mule_opcode_rb_idx_w)
     ,.opcode_ra_operand_i(mule_opcode_ra_operand_w)
     ,.opcode_rb_operand_i(mule_opcode_rb_operand_w)
-    //,.hold_i(mule_hold_w) // This comes from u_issue
+    ,.hold_i(mul_hold_w)
 
     // Outputs
-    ,.writeback_valid_o(writeback_mule_valid_w)
     ,.writeback_value_o(writeback_mule_value_w)
-    ,.writeback_rd_idx_o(writeback_mule_rd_idx_w)
 );
+
+// Generate handshake signals for u_mul2 (standard multiplier doesn't have valid output)
+// Track pipeline stages to generate completion signal
+reg [2:0] mule_pipe_valid_q;
+reg [4:0] mule_pipe_rd_idx_q;
+
+always @(posedge clk_i or posedge rst_i)
+if (rst_i) begin
+    mule_pipe_valid_q <= 3'b0;
+    mule_pipe_rd_idx_q <= 5'b0;
+end
+else if (!mul_hold_w) begin
+    // Shift pipeline valid bits (assumes MULT_STAGES = 2, so 3 cycle latency)
+    mule_pipe_valid_q <= {mule_pipe_valid_q[1:0], mule_opcode_valid_w};
+    if (mule_opcode_valid_w)
+        mule_pipe_rd_idx_q <= mule_opcode_rd_idx_w;
+end
+
+assign writeback_mule_valid_w  = mule_pipe_valid_q[2];
+assign writeback_mule_rd_idx_w = mule_pipe_rd_idx_q;
 
 // CBM disabled: tie off CBM signals
 assign cbm_busy_w             = 1'b0;
