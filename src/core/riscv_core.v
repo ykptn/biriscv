@@ -233,10 +233,8 @@ wire           branch_info_request_w;
 wire  [  1:0]  mmu_priv_d_w;
 wire  [ 31:0]  csr_opcode_opcode_w;
 wire           fetch0_instr_branch_w;
-wire           mul_opcode_invalid_w;
 wire           branch_exec0_is_ret_w;
 wire  [ 31:0]  mmu_lsu_data_rd_w;
-wire  [ 31:0]  writeback_mul_value_w;
 wire           mmu_lsu_flush_w;
 wire  [  4:0]  lsu_opcode_rb_idx_w;
 wire           mmu_lsu_accept_w;
@@ -251,11 +249,9 @@ wire  [  4:0]  lsu_opcode_ra_idx_w;
 wire  [ 31:0]  csr_writeback_exception_pc_w;
 wire           fetch1_instr_mul_w;
 wire           mmu_store_fault_w;
-// --- ADD ALL THESE ---
+// --- MULE signals (efficient multiplier) ---
 wire           fetch0_instr_mule_w;
 wire           fetch1_instr_mule_w;
-wire           fetch0_instr_cbm_w;
-wire           fetch1_instr_cbm_w;
 
 wire           mule_opcode_valid_w;
 wire  [ 31:0]  mule_opcode_opcode_w;
@@ -271,21 +267,6 @@ wire           mule_hold_w;
 wire           writeback_mule_valid_w;
 wire  [ 31:0]  writeback_mule_value_w;
 wire  [  4:0]  writeback_mule_rd_idx_w;
-
-wire           cbm_opcode_valid_w;
-wire  [ 31:0]  cbm_opcode_opcode_w;
-wire  [ 31:0]  cbm_opcode_pc_w;
-wire           cbm_opcode_invalid_w;
-wire  [  4:0]  cbm_opcode_rd_idx_w;
-wire  [  4:0]  cbm_opcode_ra_idx_w;
-wire  [  4:0]  cbm_opcode_rb_idx_w;
-wire  [ 31:0]  cbm_opcode_ra_operand_w;
-wire  [ 31:0]  cbm_opcode_rb_operand_w;
-wire           cbm_busy_w;
-wire           writeback_cbm_valid_w;
-wire  [ 31:0]  writeback_cbm_value_w;
-wire  [  4:0]  writeback_cbm_rd_idx_w;
-// --- END OF ADDED WIRES ---
 
 
 biriscv_frontend
@@ -529,27 +510,7 @@ u_csr
 );
 
 
-biriscv_multiplier
-u_mul
-(
-    // Inputs
-     .clk_i(clk_i)
-    ,.rst_i(rst_i)
-    ,.opcode_valid_i(mul_opcode_valid_w)
-    ,.opcode_opcode_i(mul_opcode_opcode_w)
-    ,.opcode_pc_i(mul_opcode_pc_w)
-    ,.opcode_invalid_i(mul_opcode_invalid_w)
-    ,.opcode_rd_idx_i(mul_opcode_rd_idx_w)
-    ,.opcode_ra_idx_i(mul_opcode_ra_idx_w)
-    ,.opcode_rb_idx_i(mul_opcode_rb_idx_w)
-    ,.opcode_ra_operand_i(mul_opcode_ra_operand_w)
-    ,.opcode_rb_operand_i(mul_opcode_rb_operand_w)
-    ,.hold_i(mul_hold_w)
-
-    // Outputs
-    ,.writeback_value_o(writeback_mul_value_w)
-);
-
+// MULE-only: using efficient multiplier as the sole multiplication unit
 biriscv_multiplier_efficient 
 u_mule
 (
@@ -572,13 +533,6 @@ u_mule
     ,.writeback_value_o(writeback_mule_value_w) // Goes to u_issue
     ,.writeback_rd_idx_o(writeback_mule_rd_idx_w) // Goes to u_issue
 );
-
-// CBM disabled: tie off CBM signals
-assign cbm_busy_w             = 1'b0;
-assign writeback_cbm_valid_w  = 1'b0;
-assign writeback_cbm_value_w  = 32'b0;
-assign writeback_cbm_rd_idx_w = 5'b0;
-
 
 biriscv_divider
 u_div
