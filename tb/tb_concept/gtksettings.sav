@@ -1,0 +1,40 @@
+[*]
+[*] GTKWave Analyzer v3.3.104 (w)1999-2020 BSI
+[*] 
+[dumpfile] "waveform.vcd"
+[savefile] "gtksettings.sav"
+[timestart] 0
+[size] 1920 1080
+[pos] -1 -1
+*-18.0 160 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_concept.
+[sst_width] 253
+[signals_width] 230
+[sst_expanded] 1
+[sst_vpaned_height] 350
+@28
+tb_concept.clk
+tb_concept.rst
+@200
+-Core Signals
+@22
+tb_concept.mem_i_pc[31:0]
+tb_concept.mem_i_inst[63:0]
+@28
+tb_concept.mem_i_valid
+tb_concept.mem_i_rd
+@200
+-Register File
+@22
+tb_concept.u_core.u_regfile.reg_rs1_data_o[31:0]
+tb_concept.u_core.u_regfile.reg_rs2_data_o[31:0]
+@200
+-Key Registers
+@22
+tb_concept.u_core.u_regfile.reg_r10_o[31:0]
+tb_concept.u_core.u_regfile.reg_r11_o[31:0]
+tb_concept.u_core.u_regfile.reg_r12_o[31:0]
+tb_concept.u_core.u_regfile.reg_r15_o[31:0]
+tb_concept.u_core.u_regfile.reg_r30_o[31:0]
+[pattern_trace] 1
+[pattern_trace] 0

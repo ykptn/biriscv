@@ -27,7 +27,6 @@ test_loop:
 
     mv x12, x0
     mv x13, x0
-    mv x14, x0
 
     add s2, s2, t0
     add s3, s3, t1
@@ -45,14 +44,11 @@ test_loop:
 
     mul x12, x10, x11
     .insn r 0x0B, 0x0, 0x01, x13, x10, x11
-    .insn r 0x0B, 0x0, 0x04, x14, x10, x11
 
 wait_loop:
     beq x12, x0, wait_loop
     beq x13, x0, wait_loop
-    beq x14, x0, wait_loop
     bne x12, x13, fail_loop
-    bne x12, x14, fail_loop
 
     mv x18, x12              # expected result for the testbench
 

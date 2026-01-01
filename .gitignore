@@ -20,3 +20,5 @@ tb/tb_mul_shift_signed/build/output.out
 tb/tb_mul_shift_signed/waveform.vcd
 # Ignore the auto-generated testing-ready package
 biriscv-testing-ready/
+tb/1000mul/1000parallel.vcd
+tb/tb_concept/waveform.vcd
