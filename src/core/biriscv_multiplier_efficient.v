@@ -37,7 +37,10 @@ localparam [2:0] MULE_STATE_DONE  = 3'd4;
 // Registers / Wires
 //-----------------------------------------------------------------
 reg [  2:0]  state_q;
-reg          valid_r;   // Removed extra valid_q register for energy efficiency
+//reg          valid_r;   // Removed extra valid_q register for energy efficiency
+reg          valid_r, valid_q;   // new
+//reg          valid_r;    old
+//reg [ 31:0]  result_r;   old
 
 // Latched Operands
 reg [ 31:0]  a_q;

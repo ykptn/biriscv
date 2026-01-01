@@ -1,6 +1,6 @@
 ###############################################################################
-# MUL vs MULE comparison test
-# Runs 1000 different operand pairs and ensures both units match.
+# MULE-only comparison test
+# Runs 1000 operand pairs using MULE twice and checks they match.
 ###############################################################################
 
 .section .text
@@ -42,8 +42,8 @@ test_loop:
     addi s1, s1, 1
     mv x15, s1               # current iteration (1-based) for debug
 
-    mul x12, x10, x11
-    .insn r 0x0B, 0x0, 0x01, x13, x10, x11
+    .insn r 0x0B, 0x0, 0x01, x12, x10, x11   # MULE #1 -> x12
+    .insn r 0x0B, 0x0, 0x01, x13, x10, x11   # MULE #2 -> x13
 
 wait_loop:
     beq x12, x0, wait_loop

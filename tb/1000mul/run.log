@@ -1,0 +1,26 @@
+# Compiling Verilog (1000mul testbench)
+iverilog -I../../src/core -DTRACE=1 -Dverilog_sim -o build//output_1000mul.out ../../src/core/biriscv_alu.v ../../src/core/biriscv_csr_regfile.v ../../src/core/biriscv_csr.v ../../src/core/biriscv_decoder.v ../../src/core/biriscv_decode.v ../../src/core/biriscv_defs.v ../../src/core/biriscv_divider.v ../../src/core/biriscv_exec.v ../../src/core/biriscv_fetch.v ../../src/core/biriscv_frontend.v ../../src/core/biriscv_issue.v ../../src/core/biriscv_lsu.v ../../src/core/biriscv_mmu.v ../../src/core/biriscv_multiplier_efficient.v ../../src/core/biriscv_multiplier.v ../../src/core/biriscv_npc.v ../../src/core/biriscv_pipe_ctrl.v ../../src/core/biriscv_regfile.v ../../src/core/biriscv_trace_sim.v ../../src/core/biriscv_xilinx_2r1w.v ../../src/core/riscv_core.v tb_1000mul.v tcm_mem.v tcm_mem_ram.v
+../../src/core/riscv_core.v:567: warning: Port 63 (writeback_mul_value_i) of biriscv_issue expects 32 bits, got 1.
+../../src/core/riscv_core.v:567:        : Padding 31 high bits of the port.
+../../src/core/riscv_core.v:567: warning: Port 70 (writeback_cbm_value_i) of biriscv_issue expects 32 bits, got 1.
+../../src/core/riscv_core.v:567:        : Padding 31 high bits of the port.
+../../src/core/riscv_core.v:567: warning: Port 71 (writeback_cbm_rd_idx_i) of biriscv_issue expects 5 bits, got 1.
+../../src/core/riscv_core.v:567:        : Padding 4 high bits of the port.
+../../src/core/riscv_core.v:567: warning: Port 140 (cbm_opcode_opcode_o) of biriscv_issue expects 32 bits, got 1.
+../../src/core/riscv_core.v:567:        : Padding 31 high bits of the port.
+../../src/core/riscv_core.v:567: warning: Port 141 (cbm_opcode_pc_o) of biriscv_issue expects 32 bits, got 1.
+../../src/core/riscv_core.v:567:        : Padding 31 high bits of the port.
+../../src/core/riscv_core.v:567: warning: Port 143 (cbm_opcode_rd_idx_o) of biriscv_issue expects 5 bits, got 1.
+../../src/core/riscv_core.v:567:        : Padding 4 high bits of the port.
+../../src/core/riscv_core.v:567: warning: Port 144 (cbm_opcode_ra_idx_o) of biriscv_issue expects 5 bits, got 1.
+../../src/core/riscv_core.v:567:        : Padding 4 high bits of the port.
+../../src/core/riscv_core.v:567: warning: Port 145 (cbm_opcode_rb_idx_o) of biriscv_issue expects 5 bits, got 1.
+../../src/core/riscv_core.v:567:        : Padding 4 high bits of the port.
+../../src/core/riscv_core.v:567: warning: Port 146 (cbm_opcode_ra_operand_o) of biriscv_issue expects 32 bits, got 1.
+../../src/core/riscv_core.v:567:        : Padding 31 high bits of the port.
+../../src/core/riscv_core.v:567: warning: Port 147 (cbm_opcode_rb_operand_o) of biriscv_issue expects 32 bits, got 1.
+../../src/core/riscv_core.v:567:        : Padding 31 high bits of the port.
+riscv64-unknown-elf-as -march=rv32im -mabi=ilp32 test_1000mul.s -o test_1000mul.o
+riscv64-unknown-elf-ld -m elf32lriscv -T link.ld -o test_1000mul.elf test_1000mul.o
+riscv64-unknown-elf-objcopy test_1000mul.elf -O binary build//tcm.bin
+vvp build//output_1000mul.out -vcd

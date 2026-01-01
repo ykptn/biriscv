@@ -43,25 +43,20 @@ end
 
 reg [31:0] last_pc;
 reg [31:0] cycle_count;
-reg [31:0] reg_r10_prev, reg_r11_prev, reg_r12_prev, reg_r13_prev, reg_r14_prev;
+reg [31:0] reg_r10_prev, reg_r11_prev, reg_r12_prev, reg_r13_prev;
 integer mul_issue_cycle;
 integer mul_done_cycle;
 integer mule_issue_cycle;
 integer mule_done_cycle;
-integer cbm_issue_cycle;
-integer cbm_done_cycle;
 reg [31:0] mul_wb_value;
 reg [31:0] mule_wb_value;
 reg        pass_reported;
 reg        fail_reported;
 integer    mul_total_latency;
 integer    mule_total_latency;
-integer    cbm_total_latency;
 integer    mul_completed_ops;
 integer    mule_completed_ops;
-integer    cbm_completed_ops;
 reg        mule_inflight;
-reg        cbm_inflight;
 integer    mul_issue_fifo   [0:MUL_LAT_FIFO_DEPTH-1];
 integer    mul_fifo_wr_ptr;
 integer    mul_fifo_rd_ptr;
@@ -77,25 +72,19 @@ initial begin
     reg_r11_prev     = 32'h0;
     reg_r12_prev     = 32'h0;
     reg_r13_prev     = 32'h0;
-    reg_r14_prev     = 32'h0;
     mul_issue_cycle  = -1;
     mul_done_cycle   = -1;
     mule_issue_cycle = -1;
     mule_done_cycle  = -1;
-    cbm_issue_cycle  = -1;
-    cbm_done_cycle   = -1;
     mul_wb_value     = 32'h0;
     mule_wb_value    = 32'h0;
     pass_reported    = 1'b0;
     fail_reported    = 1'b0;
     mul_total_latency   = 0;
     mule_total_latency  = 0;
-    cbm_total_latency   = 0;
     mul_completed_ops   = 0;
     mule_completed_ops  = 0;
-    cbm_completed_ops   = 0;
     mule_inflight       = 1'b0;
-    cbm_inflight        = 1'b0;
     mul_fifo_wr_ptr     = 0;
     mul_fifo_rd_ptr     = 0;
     mul_fifo_count      = 0;
@@ -105,7 +94,6 @@ end
 
 wire [31:0] reg_mul_result_w  = u_dut.u_issue.u_regfile.REGFILE.reg_r12_q;
 wire [31:0] reg_mule_result_w = u_dut.u_issue.u_regfile.REGFILE.reg_r13_q;
-wire [31:0] reg_cbm_result_w  = u_dut.u_issue.u_regfile.REGFILE.reg_r14_q;
 wire [31:0] reg_iteration_w   = u_dut.u_issue.u_regfile.REGFILE.reg_r15_q;
 wire [31:0] reg_operand_a_w   = u_dut.u_issue.u_regfile.REGFILE.reg_r16_q;
 wire [31:0] reg_operand_b_w   = u_dut.u_issue.u_regfile.REGFILE.reg_r17_q;
@@ -115,30 +103,26 @@ task automatic report_summary;
     input [31:0] pc_value;
     real mul_avg_latency;
     real mule_avg_latency;
-    real cbm_avg_latency;
 begin
 
     mul_avg_latency  = (mul_completed_ops  > 0) ? (1.0 * mul_total_latency)  / mul_completed_ops  : 0.0;
     mule_avg_latency = (mule_completed_ops > 0) ? (1.0 * mule_total_latency) / mule_completed_ops : 0.0;
-    cbm_avg_latency  = (cbm_completed_ops  > 0) ? (1.0 * cbm_total_latency)  / cbm_completed_ops  : 0.0;
 
     if (pass)
     begin
         $display("\n*** COMPARE PASSED! ***");
-        $display("PC reached 0x%08h and all units computed correctly: x12 = %0d, x13 = %0d, x14 = %0d",
+        $display("PC reached 0x%08h and both units computed correctly: x12 = %0d, x13 = %0d",
                  pc_value,
                  reg_mul_result_w,
-                 reg_mule_result_w,
-                 reg_cbm_result_w);
+                 reg_mule_result_w);
     end
     else
     begin
         $display("\n*** COMPARE FAILED! ***");
-        $display("PC reached 0x%08h but results differ: x12 = %0d, x13 = %0d, x14 = %0d",
+        $display("PC reached 0x%08h but results differ: x12 = %0d, x13 = %0d",
                  pc_value,
                  reg_mul_result_w,
-                 reg_mule_result_w,
-                 reg_cbm_result_w);
+                 reg_mule_result_w);
     end
 
     $display("Last operands observed: mul=%0d, mule=%0d (iteration %0d of %0d)",
@@ -150,8 +134,6 @@ begin
              mul_completed_ops, mul_total_latency, mul_avg_latency);
     $display("MULE completions: %0d, total latency %0d cycles, average %0f cycles",
              mule_completed_ops, mule_total_latency, mule_avg_latency);
-    $display("CBM  completions: %0d, total latency %0d cycles, average %0f cycles",
-             cbm_completed_ops, cbm_total_latency, cbm_avg_latency);
 
     if (mul_issue_cycle >= 0 && mul_done_cycle >= 0)
         $display("MUL issue/writeback cycles  = %0d -> %0d (latency %0d)",
@@ -166,13 +148,6 @@ begin
     else
         $display("MULE completion not observed (issue %0d, done %0d)",
                  mule_issue_cycle, mule_done_cycle);
-
-    if (cbm_issue_cycle >= 0 && cbm_done_cycle >= 0)
-        $display("CBM issue/writeback cycles  = %0d -> %0d (latency %0d)",
-                 cbm_issue_cycle, cbm_done_cycle, cbm_done_cycle - cbm_issue_cycle);
-    else
-        $display("CBM completion not observed (issue %0d, done %0d)",
-                 cbm_issue_cycle, cbm_done_cycle);
 
     $finish;
 end
@@ -199,12 +174,6 @@ wire [31:0] pipe1_result_wb_data_w = u_dut.u_issue.pipe1_result_wb_w;
 wire mule_wb_valid_w = u_dut.writeback_mule_valid_w;
 wire [4:0] mule_wb_rd_idx_w = u_dut.writeback_mule_rd_idx_w;
 wire [31:0] mule_wb_value_w = u_dut.writeback_mule_value_w;
-wire cbm_issue_valid_w = u_dut.cbm_opcode_valid_w && (u_dut.cbm_opcode_rd_idx_w == 5'd14);
-wire [31:0] cbm_issue_ra_w = u_dut.cbm_opcode_ra_operand_w;
-wire [31:0] cbm_issue_rb_w = u_dut.cbm_opcode_rb_operand_w;
-wire cbm_wb_valid_w  = u_dut.writeback_cbm_valid_w;
-wire [4:0] cbm_wb_rd_idx_w = u_dut.writeback_cbm_rd_idx_w;
-wire [31:0] cbm_wb_value_w = u_dut.writeback_cbm_value_w;
 wire pipe0_mul_issue_event_w = u_dut.u_issue.pipe0_mul_e1_w &&
                                ~pipe0_mul_e1_prev &&
                                (u_dut.u_issue.pipe0_rd_e1_w == 5'd12);
@@ -220,21 +189,15 @@ always @(posedge clk) begin
         reg_r11_prev       <= 32'h0;
         reg_r12_prev       <= 32'h0;
         reg_r13_prev       <= 32'h0;
-        reg_r14_prev       <= 32'h0;
         mul_issue_cycle    <= -1;
         mul_done_cycle     <= -1;
         mule_issue_cycle   <= -1;
         mule_done_cycle    <= -1;
-        cbm_issue_cycle    <= -1;
-        cbm_done_cycle     <= -1;
         mul_total_latency  <= 0;
         mule_total_latency <= 0;
-        cbm_total_latency  <= 0;
         mul_completed_ops  <= 0;
         mule_completed_ops <= 0;
-        cbm_completed_ops  <= 0;
         mule_inflight      <= 1'b0;
-        cbm_inflight       <= 1'b0;
         pass_reported      <= 1'b0;
         fail_reported      <= 1'b0;
         mul_fifo_wr_ptr    <= 0;
@@ -250,13 +213,11 @@ always @(posedge clk) begin
             reg_r11_prev <= u_dut.u_issue.u_regfile.REGFILE.reg_r11_q;
             reg_r12_prev <= u_dut.u_issue.u_regfile.REGFILE.reg_r12_q;
             reg_r13_prev <= u_dut.u_issue.u_regfile.REGFILE.reg_r13_q;
-            reg_r14_prev <= u_dut.u_issue.u_regfile.REGFILE.reg_r14_q;
 
             if (u_dut.u_issue.u_regfile.REGFILE.reg_r10_q != reg_r10_prev ||
                 u_dut.u_issue.u_regfile.REGFILE.reg_r11_q != reg_r11_prev ||
                 u_dut.u_issue.u_regfile.REGFILE.reg_r12_q != reg_r12_prev ||
-                u_dut.u_issue.u_regfile.REGFILE.reg_r13_q != reg_r13_prev ||
-                u_dut.u_issue.u_regfile.REGFILE.reg_r14_q != reg_r14_prev) begin
+                u_dut.u_issue.u_regfile.REGFILE.reg_r13_q != reg_r13_prev) begin
 
                 $display("[Cycle %0d] Register update detected:", cycle_count);
                 $display("      x10 (a0) = %0d (prev: %0d)",
@@ -267,8 +228,6 @@ always @(posedge clk) begin
                          u_dut.u_issue.u_regfile.REGFILE.reg_r12_q, reg_r12_prev);
                 $display("      x13 (a3) = %0d (prev: %0d)",
                          u_dut.u_issue.u_regfile.REGFILE.reg_r13_q, reg_r13_prev);
-                $display("      x14 (a4) = %0d (prev: %0d)",
-                         u_dut.u_issue.u_regfile.REGFILE.reg_r14_q, reg_r14_prev);
             end
         end
 
@@ -315,15 +274,6 @@ always @(posedge clk) begin
                      u_dut.mule_opcode_rd_idx_w);
         end
 
-        if (!cbm_inflight && cbm_issue_valid_w) begin
-            cbm_issue_cycle <= cycle_count;
-            cbm_inflight    <= 1'b1;
-            $display("[Cycle %0d] CBM issue: ra=%0d rb=%0d rd=14",
-                     cycle_count,
-                     cbm_issue_ra_w,
-                     cbm_issue_rb_w);
-        end
-
         if (pipe0_mul_wb_valid_w && pipe0_rd_wb_idx_w == 5'd12) begin
             mul_issue_cycle_entry = (mul_fifo_count > 0) ? mul_issue_fifo[mul_fifo_rd_ptr] : cycle_count;
             if (mul_fifo_count > 0) begin
@@ -367,15 +317,6 @@ always @(posedge clk) begin
             mule_inflight      <= 1'b0;
             $display("[Cycle %0d] MULE writeback x13 = %0d (raw WB signal) -- iter %0d",
                      cycle_count, mule_wb_value_w, reg_iteration_w);
-        end
-
-        if (cbm_inflight && cbm_wb_valid_w && cbm_wb_rd_idx_w == 5'd14) begin
-            cbm_done_cycle    <= cycle_count;
-            cbm_total_latency <= cbm_total_latency + (cycle_count - cbm_issue_cycle);
-            cbm_completed_ops <= cbm_completed_ops + 1;
-            cbm_inflight      <= 1'b0;
-            $display("[Cycle %0d] CBM writeback x14 = %0d (latency %0d) -- iter %0d",
-                     cycle_count, cbm_wb_value_w, cycle_count - cbm_issue_cycle, reg_iteration_w);
         end
 
         if (mem_i_pc_w != last_pc) begin
