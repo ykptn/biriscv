@@ -6,6 +6,7 @@ tb/tb_cbm/build/output.out
 tb/tb_cbm/waveform.vcd
 tb/tb_mul_compare/build/output.out
 tb/tb_mul_compare/waveform.vcd
+tb/tb_mul_compare/alternatives.vcd
 tb/tb_dot_mul/build/output.out
 tb/tb_dot_mul/waveform.vcd
 tb/tb_fft_mul/build/output.out
