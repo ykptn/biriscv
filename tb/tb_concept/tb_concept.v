@@ -1,6 +1,6 @@
 `include "../../src/core/biriscv_defs.v"
 
-module tb_mul_compare;
+module tb_concept;
 
 localparam PASS_PC         = 32'h80000190;
 localparam FAIL_PC         = 32'h80000194;
@@ -17,7 +17,7 @@ reg [1023:0] vcd_name;
 
 initial begin
 
-    $display("Starting MUL vs MULE compare testbench");
+    $display("Starting LATENCY HIDING testbench for tb_concept");
 
     if (`TRACE) begin
         // Allow overriding the VCD name via +dumpfile=<name>. Falls back to waveform.vcd
@@ -26,7 +26,7 @@ initial begin
         end
         $display("Dumping VCD to %0s", vcd_name);
         $dumpfile(vcd_name);
-        $dumpvars(0, tb_mul_compare);
+        $dumpvars(0, tb_concept);
     end
 
     clk = 0;

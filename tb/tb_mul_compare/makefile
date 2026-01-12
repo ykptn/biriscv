@@ -11,6 +11,8 @@ OBJCOPY = riscv64-unknown-elf-objcopy
 # Defaults
 ###############################################################################
 TRACE ?= 1
+MODE ?= 0
+VCD_FILE ?= waveform.vcd
 
 SRC_V_DIR ?= ../../src/core .
 EXE       ?= output.out
@@ -37,7 +39,7 @@ $(BUILD_DIR):
 # Assemble + Link ELF using link.ld (correct memory layout)
 ###############################################################################
 test_mul_compare.o: test_mul_compare.s
-	$(AS) -march=rv32im -mabi=ilp32 test_mul_compare.s -o test_mul_compare.o
+	$(AS) -march=rv32im -mabi=ilp32 --defsym MODE=$(MODE) test_mul_compare.s -o test_mul_compare.o
 
 $(ELF_FILE): test_mul_compare.o link.ld
 	$(LD) -m elf32lriscv -T link.ld -o $(ELF_FILE) test_mul_compare.o
@@ -56,7 +58,7 @@ $(BUILD_DIR)/$(EXE): $(SRC_V) | $(BUILD_DIR)
 	iverilog $(VFLAGS) -o $@ $(SRC_V)
 
 run: $(BUILD_DIR)/$(EXE) $(BUILD_DIR)/tcm.bin
-	vvp $(BUILD_DIR)/$(EXE) -vcd
+	vvp $(BUILD_DIR)/$(EXE) -vcd +dumpfile=$(VCD_FILE)
 
 clean:
 	rm -rf $(BUILD_DIR) *.vcd *.o $(ELF_FILE)

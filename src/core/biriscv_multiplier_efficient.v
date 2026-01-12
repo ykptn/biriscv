@@ -27,17 +27,19 @@ module biriscv_multiplier_efficient
 //-----------------------------------------------------------------
 // Local Params
 //-----------------------------------------------------------------
-localparam [2:0] MULE_STATE_IDLE  = 3'd0;
-localparam [2:0] MULE_STATE_CALC0 = 3'd1;
-localparam [2:0] MULE_STATE_CALC1 = 3'd2;
-localparam [2:0] MULE_STATE_CALC2 = 3'd3;
-localparam [2:0] MULE_STATE_DONE  = 3'd4;
+localparam [2:0] MULE_STATE_IDLE      = 3'd0;
+localparam [2:0] MULE_STATE_CALC0     = 3'd1;
+localparam [2:0] MULE_STATE_CALC1     = 3'd2;
+localparam [2:0] MULE_STATE_CALC2     = 3'd3;
+localparam [2:0] MULE_STATE_DONE      = 3'd4;
+localparam [2:0] MULE_STATE_ZERO_DONE = 3'd5;  // Fast path for zero operands
 
 //-----------------------------------------------------------------
 // Registers / Wires
 //-----------------------------------------------------------------
 reg [  2:0]  state_q;
 reg          valid_r;   // Removed extra valid_q register for energy efficiency
+reg          partials_valid_q;  // Track when partials contain valid result data
 
 // Latched Operands
 reg [ 31:0]  a_q;
@@ -65,6 +67,7 @@ if (rst_i)
 begin
     state_q  <= MULE_STATE_IDLE;
     valid_r  <= 1'b0;
+    partials_valid_q <= 1'b0;
     a_q      <= 32'b0;
     b_q      <= 32'b0;
     rd_idx_q <= 5'b0;     // Initialize rd index
@@ -82,10 +85,36 @@ begin
     begin
         if (opcode_valid_i) // New instruction from issue
         begin
-            a_q     <= opcode_ra_operand_i;
-            b_q     <= opcode_rb_operand_i;
             rd_idx_q <= opcode_rd_idx_i;  // Latch rd index
-            state_q <= MULE_STATE_CALC0;
+            // Zero-operand short-circuit: skip computation if either operand is zero
+            if ((opcode_ra_operand_i == 32'b0) || (opcode_rb_operand_i == 32'b0))
+            begin
+                // Ensure partials are zero for zero result
+                p0_q <= 32'b0;
+                p1_q <= 32'b0;
+                p2_q <= 32'b0;
+                partials_valid_q <= 1'b1;  // Zero is a valid result
+                state_q <= MULE_STATE_ZERO_DONE;
+            end
+            else
+            begin
+                // Clear old partials to reduce switching power
+                p0_q <= 32'b0;
+                p1_q <= 32'b0;
+                p2_q <= 32'b0;
+                partials_valid_q <= 1'b0;
+                a_q     <= opcode_ra_operand_i;
+                b_q     <= opcode_rb_operand_i;
+                state_q <= MULE_STATE_CALC0;
+            end
+        end
+        else if (partials_valid_q)
+        begin
+            // Clear partials after result has been captured (one cycle after DONE)
+            p0_q <= 32'b0;
+            p1_q <= 32'b0;
+            p2_q <= 32'b0;
+            partials_valid_q <= 1'b0;
         end
     end
     
@@ -104,6 +133,7 @@ begin
     MULE_STATE_CALC2: // P2 = A_h * B_l
     begin
         p2_q    <= mult_out_w; // Latch result computed in THIS cycle
+        partials_valid_q <= 1'b1;  // All partials will be valid next cycle
         state_q <= MULE_STATE_DONE;
     end
 
@@ -114,6 +144,13 @@ begin
         // result_r <= p0_q + (p1_q << 16) + (p2_q << 16);   NEW GONE
         
         valid_r <= 1'b1; // Signal completion to issue stage
+        state_q <= MULE_STATE_IDLE;
+    end
+
+    MULE_STATE_ZERO_DONE:
+    begin
+        // Fast completion for zero-operand multiplications
+        valid_r <= 1'b1;
         state_q <= MULE_STATE_IDLE;
     end
 
@@ -128,22 +165,22 @@ end
 // Combinatorial
 //-----------------------------------------------------------------
 
-// Energy optimization: Gate multiplier inputs when not in use
-wire mult_active_w = (state_q == MULE_STATE_CALC0) || 
-                     (state_q == MULE_STATE_CALC1) || 
-                     (state_q == MULE_STATE_CALC2);
+// Energy optimization: One-hot state decode for cleaner input muxing
+wire state_calc0_w = (state_q == MULE_STATE_CALC0);
+wire state_calc1_w = (state_q == MULE_STATE_CALC1);
+wire state_calc2_w = (state_q == MULE_STATE_CALC2);
+wire mult_active_w = state_calc0_w || state_calc1_w || state_calc2_w;
 
 // FSM controls the inputs to the 16x16 multiplier (gated for power savings)
-assign mult_a_in_w = mult_active_w ? 
-                     ((state_q == MULE_STATE_CALC2) ? a_q[31:16] : a_q[15:0]) : 
-                     16'b0;
+assign mult_a_in_w = state_calc2_w ? a_q[31:16]
+                     : (mult_active_w ? a_q[15:0] : 16'b0);
 
-assign mult_b_in_w = mult_active_w ?
-                     ((state_q == MULE_STATE_CALC1) ? b_q[31:16] : b_q[15:0]) :
-                     16'b0;
+assign mult_b_in_w = state_calc1_w ? b_q[31:16]
+                     : (mult_active_w ? b_q[15:0] : 16'b0);
 
-// Combinational final product from partials
-wire [31:0] result_w = p0_q + (p1_q << 16) + (p2_q << 16);
+// Combinational final product from partials - gated to reduce switching power
+// Only compute when partials contain valid data (during DONE or ZERO_DONE cycles)
+wire [31:0] result_w = partials_valid_q ? (p0_q + (p1_q << 16) + (p2_q << 16)) : 32'b0;
 
 // Outputs - direct from valid_r (removed extra pipeline stage for 1 cycle faster + power savings)
 assign writeback_valid_o = valid_r;
