@@ -21,3 +21,6 @@ tb/tb_mul_shift_signed/waveform.vcd
 # Ignore the auto-generated testing-ready package
 biriscv-testing-ready/
 *.vcd
+tb/tb_mul_compare/test_mul_compare.elf
+tb/tb_mul_compare/test_mul_compare.o
+tb/tb_mul_compare/build/tcm.bin
