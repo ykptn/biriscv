@@ -47,6 +47,7 @@ module biriscv_pipe_ctrl
     ,input           issue_mul_i
     ,input           issue_mule_i
     ,input           issue_cbm_i
+    ,input           issue_mulp_i
     ,input           issue_branch_i
     ,input           issue_rd_valid_i
     ,input  [4:0]    issue_rd_i
@@ -98,6 +99,8 @@ module biriscv_pipe_ctrl
     ,input  [31:0]   mule_result_i
     ,input           cbm_complete_i
     ,input  [31:0]   cbm_result_i
+    ,input           mulp_complete_i
+    ,input  [31:0]   mulp_result_i
 
     // Commit
     ,output          valid_wb_o
@@ -128,7 +131,7 @@ wire branch_misaligned_w = (issue_branch_taken_i && issue_branch_target_i[1:0] !
 //-------------------------------------------------------------
 // E1 / Address
 //------------------------------------------------------------- 
-`define PCINFO_W     12
+`define PCINFO_W     13
 `define PCINFO_ALU       0
 `define PCINFO_LOAD      1
 `define PCINFO_STORE     2
@@ -141,6 +144,7 @@ wire branch_misaligned_w = (issue_branch_taken_i && issue_branch_target_i[1:0] !
 `define PCINFO_COMPLETE  9
 `define PCINFO_MULE      10
 `define PCINFO_CBM       11
+`define PCINFO_MULP      12
 
 `define RD_IDX_R    11:7
 
@@ -170,7 +174,7 @@ else if (issue_stall_i)
 else if ((issue_valid_i && issue_accept_i) && ~(squash_e1_e2_o || squash_e1_e2_i))
 begin
     valid_e1_q                  <= 1'b1;
-    ctrl_e1_q[`PCINFO_ALU]      <= ~(issue_lsu_i | issue_csr_i | issue_div_i | issue_mul_i | issue_mule_i | issue_cbm_i);
+    ctrl_e1_q[`PCINFO_ALU]      <= ~(issue_lsu_i | issue_csr_i | issue_div_i | issue_mul_i | issue_mule_i | issue_cbm_i | issue_mulp_i);
     ctrl_e1_q[`PCINFO_LOAD]     <= issue_lsu_i &  issue_rd_valid_i & ~take_interrupt_i;
     // TODO: Check
     ctrl_e1_q[`PCINFO_STORE]    <= issue_lsu_i & ~issue_rd_valid_i & ~take_interrupt_i;
@@ -179,6 +183,7 @@ begin
     ctrl_e1_q[`PCINFO_MUL]      <= issue_mul_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_MULE]     <= issue_mule_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_CBM]      <= issue_cbm_i & ~take_interrupt_i;
+    ctrl_e1_q[`PCINFO_MULP]     <= issue_mulp_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_BRANCH]   <= issue_branch_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_RD_VALID] <= issue_rd_valid_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_INTR]     <= take_interrupt_i;
@@ -295,6 +300,8 @@ begin
         result_e2_q <= mule_result_i;
     else if (ctrl_e1_q[`PCINFO_CBM])
         result_e2_q <= cbm_result_i;
+    else if (ctrl_e1_q[`PCINFO_MULP])
+        result_e2_q <= mulp_result_i;
     else if (ctrl_e1_q[`PCINFO_CSR])
         result_e2_q <= csr_result_value_e1_i;
     else
@@ -323,6 +330,7 @@ assign result_e2_o     = result_e2_r;
 // Load store result not ready when reaching E2
 assign stall_o         = (ctrl_e1_q[`PCINFO_DIV] && ~div_complete_i)  ||
                          (ctrl_e1_q[`PCINFO_CBM] && ~cbm_complete_i)  ||
+                         (ctrl_e1_q[`PCINFO_MULP] && ~mulp_complete_i) ||
                          ((ctrl_e2_q[`PCINFO_LOAD] | ctrl_e2_q[`PCINFO_STORE]) & ~mem_complete_i);
 
 reg [`EXCEPTION_W-1:0] exception_e2_r;
@@ -414,6 +422,20 @@ begin
     operand_ra_wb_q <= operand_ra_e1_q;
     operand_rb_wb_q <= operand_rb_e1_q;
     result_wb_q     <= cbm_result_i;
+    exception_wb_q  <= exception_e1_q;
+    csr_wr_wb_q     <= 1'b0;
+    csr_wdata_wb_q  <= 32'b0;
+end
+else if (ctrl_e1_q[`PCINFO_MULP] && mulp_complete_i && valid_e1_q)
+begin
+    valid_wb_q      <= 1'b1;
+    ctrl_wb_q       <= ctrl_e1_q;
+    pc_wb_q         <= pc_e1_q;
+    npc_wb_q        <= npc_e1_q;
+    opcode_wb_q     <= opcode_e1_q;
+    operand_ra_wb_q <= operand_ra_e1_q;
+    operand_rb_wb_q <= operand_rb_e1_q;
+    result_wb_q     <= mulp_result_i;
     exception_wb_q  <= exception_e1_q;
     csr_wr_wb_q     <= 1'b0;
     csr_wdata_wb_q  <= 32'b0;

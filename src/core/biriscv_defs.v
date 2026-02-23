@@ -238,6 +238,9 @@
 `define INST_CBM_MASK   32'hFE00707F
 `define INST_CBM        32'h0800000B // funct7=0x04, funct3=0, opcode=custom-0
 
+`define INST_MULP_MASK  32'hFE00707F
+`define INST_MULP       32'h0200100B // funct7=0x01, funct3=001, opcode=custom-0
+
 // mulh
 `define INST_MULH 32'h2001033
 `define INST_MULH_MASK 32'hfe00707f

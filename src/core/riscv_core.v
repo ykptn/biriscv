@@ -285,6 +285,21 @@ wire           cbm_busy_w;
 wire           writeback_cbm_valid_w;
 wire  [ 31:0]  writeback_cbm_value_w;
 wire  [  4:0]  writeback_cbm_rd_idx_w;
+
+wire           fetch0_instr_mulp_w;
+wire           fetch1_instr_mulp_w;
+wire           mulp_opcode_valid_w;
+wire  [ 31:0]  mulp_opcode_opcode_w;
+wire  [ 31:0]  mulp_opcode_pc_w;
+wire           mulp_opcode_invalid_w;
+wire  [  4:0]  mulp_opcode_rd_idx_w;
+wire  [  4:0]  mulp_opcode_ra_idx_w;
+wire  [  4:0]  mulp_opcode_rb_idx_w;
+wire  [ 31:0]  mulp_opcode_ra_operand_w;
+wire  [ 31:0]  mulp_opcode_rb_operand_w;
+wire           writeback_mulp_valid_w;
+wire  [ 31:0]  writeback_mulp_value_w;
+wire  [  4:0]  writeback_mulp_rd_idx_w;
 // --- END OF ADDED WIRES ---
 
 
@@ -365,6 +380,8 @@ u_frontend
     ,.fetch1_instr_mule_o(fetch1_instr_mule_w)
     ,.fetch0_instr_cbm_o(fetch0_instr_cbm_w)
     ,.fetch1_instr_cbm_o(fetch1_instr_cbm_w)
+    ,.fetch0_instr_mulp_o(fetch0_instr_mulp_w)
+    ,.fetch1_instr_mulp_o(fetch1_instr_mulp_w)
 );
 
 
@@ -589,6 +606,31 @@ u_cbm
 );
 
 
+biriscv_multiplier_pipelined
+#(
+    .MULT_STAGES(6)
+)
+u_mulp
+(
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.opcode_valid_i(mulp_opcode_valid_w)
+    ,.opcode_opcode_i(mulp_opcode_opcode_w)
+    ,.opcode_pc_i(mulp_opcode_pc_w)
+    ,.opcode_invalid_i(mulp_opcode_invalid_w)
+    ,.opcode_rd_idx_i(mulp_opcode_rd_idx_w)
+    ,.opcode_ra_idx_i(mulp_opcode_ra_idx_w)
+    ,.opcode_rb_idx_i(mulp_opcode_rb_idx_w)
+    ,.opcode_ra_operand_i(mulp_opcode_ra_operand_w)
+    ,.opcode_rb_operand_i(mulp_opcode_rb_operand_w)
+
+    // Outputs
+    ,.writeback_valid_o(writeback_mulp_valid_w)
+    ,.writeback_value_o(writeback_mulp_value_w)
+    ,.writeback_rd_idx_o(writeback_mulp_rd_idx_w)
+);
+
+
 biriscv_divider
 u_div
 (
@@ -639,6 +681,7 @@ u_issue
     ,.fetch0_instr_invalid_i(fetch0_instr_invalid_w)
     ,.fetch0_instr_mule_i(fetch0_instr_mule_w)
     ,.fetch0_instr_cbm_i(fetch0_instr_cbm_w)
+    ,.fetch0_instr_mulp_i(fetch0_instr_mulp_w)
     ,.fetch1_valid_i(fetch1_valid_w)
     ,.fetch1_instr_i(fetch1_instr_w)
     ,.fetch1_pc_i(fetch1_pc_w)
@@ -654,6 +697,7 @@ u_issue
     ,.fetch1_instr_invalid_i(fetch1_instr_invalid_w)
     ,.fetch1_instr_mule_i(fetch1_instr_mule_w)
     ,.fetch1_instr_cbm_i(fetch1_instr_cbm_w)
+    ,.fetch1_instr_mulp_i(fetch1_instr_mulp_w)
     ,.branch_exec0_request_i(branch_exec0_request_w)
     ,.branch_exec0_is_taken_i(branch_exec0_is_taken_w)
     ,.branch_exec0_is_not_taken_i(branch_exec0_is_not_taken_w)
@@ -693,6 +737,9 @@ u_issue
     ,.writeback_cbm_valid_i(writeback_cbm_valid_w)
     ,.writeback_cbm_value_i(writeback_cbm_value_w)
     ,.writeback_cbm_rd_idx_i(writeback_cbm_rd_idx_w)
+    ,.writeback_mulp_valid_i(writeback_mulp_valid_w)
+    ,.writeback_mulp_value_i(writeback_mulp_value_w)
+    ,.writeback_mulp_rd_idx_i(writeback_mulp_rd_idx_w)
     ,.csr_result_e1_value_i(csr_result_e1_value_w)
     ,.csr_result_e1_write_i(csr_result_e1_write_w)
     ,.csr_result_e1_wdata_i(csr_result_e1_wdata_w)
@@ -722,6 +769,7 @@ u_issue
     ,.div_opcode_valid_o(div_opcode_valid_w)
     ,.mule_opcode_valid_o(mule_opcode_valid_w)
     ,.cbm_opcode_valid_o(cbm_opcode_valid_w)
+    ,.mulp_opcode_valid_o(mulp_opcode_valid_w)
     ,.opcode0_opcode_o(opcode0_opcode_w)
     ,.opcode0_pc_o(opcode0_pc_w)
     ,.opcode0_invalid_o(opcode0_invalid_w)
@@ -778,6 +826,14 @@ u_issue
     ,.cbm_opcode_rb_idx_o(cbm_opcode_rb_idx_w)
     ,.cbm_opcode_ra_operand_o(cbm_opcode_ra_operand_w)
     ,.cbm_opcode_rb_operand_o(cbm_opcode_rb_operand_w)
+    ,.mulp_opcode_opcode_o(mulp_opcode_opcode_w)
+    ,.mulp_opcode_pc_o(mulp_opcode_pc_w)
+    ,.mulp_opcode_invalid_o(mulp_opcode_invalid_w)
+    ,.mulp_opcode_rd_idx_o(mulp_opcode_rd_idx_w)
+    ,.mulp_opcode_ra_idx_o(mulp_opcode_ra_idx_w)
+    ,.mulp_opcode_rb_idx_o(mulp_opcode_rb_idx_w)
+    ,.mulp_opcode_ra_operand_o(mulp_opcode_ra_operand_w)
+    ,.mulp_opcode_rb_operand_o(mulp_opcode_rb_operand_w)
     ,.csr_writeback_write_o(csr_writeback_write_w)
     ,.csr_writeback_waddr_o(csr_writeback_waddr_w)
     ,.csr_writeback_wdata_o(csr_writeback_wdata_w)

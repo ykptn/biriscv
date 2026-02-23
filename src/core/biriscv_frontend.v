@@ -90,6 +90,7 @@ module biriscv_frontend
     ,output          fetch0_instr_invalid_o
     ,output          fetch0_instr_mule_o      // <--- THIS IS THE FIX
     ,output          fetch0_instr_cbm_o
+    ,output          fetch0_instr_mulp_o
     ,output          fetch1_valid_o
     ,output [ 31:0]  fetch1_instr_o
     ,output [ 31:0]  fetch1_pc_o
@@ -105,6 +106,7 @@ module biriscv_frontend
     ,output          fetch1_instr_invalid_o
     ,output          fetch1_instr_mule_o      // <--- THIS IS THE FIX
     ,output          fetch1_instr_cbm_o
+    ,output          fetch1_instr_mulp_o
 );
 
 wire           fetch_valid_w;
@@ -195,6 +197,7 @@ u_decode
     ,.fetch_out0_instr_invalid_o(fetch0_instr_invalid_o)
     ,.fetch_out0_instr_mule_o(fetch0_instr_mule_o)
     ,.fetch_out0_instr_cbm_o(fetch0_instr_cbm_o)
+    ,.fetch_out0_instr_mulp_o(fetch0_instr_mulp_o)
     ,.fetch_out1_valid_o(fetch1_valid_o)
     ,.fetch_out1_instr_o(fetch1_instr_o)
     ,.fetch_out1_pc_o(fetch1_pc_o)
@@ -210,6 +213,7 @@ u_decode
     ,.fetch_out1_instr_invalid_o(fetch1_instr_invalid_o)
     ,.fetch_out1_instr_mule_o(fetch1_instr_mule_o)
     ,.fetch_out1_instr_cbm_o(fetch1_instr_cbm_o)
+    ,.fetch_out1_instr_mulp_o(fetch1_instr_mulp_o)
 );
 
 

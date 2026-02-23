@@ -69,6 +69,8 @@ module biriscv_issue
     ,input           fetch1_instr_mule_i
     ,input           fetch0_instr_cbm_i
     ,input           fetch1_instr_cbm_i
+    ,input           fetch0_instr_mulp_i
+    ,input           fetch1_instr_mulp_i
     ,input           fetch1_instr_rd_valid_i
     ,input           fetch1_instr_invalid_i
     ,input           branch_exec0_request_i
@@ -110,6 +112,9 @@ module biriscv_issue
     ,input           writeback_cbm_valid_i
     ,input  [ 31:0]  writeback_cbm_value_i
     ,input  [  4:0]  writeback_cbm_rd_idx_i
+    ,input           writeback_mulp_valid_i
+    ,input  [ 31:0]  writeback_mulp_value_i
+    ,input  [  4:0]  writeback_mulp_rd_idx_i
     ,input  [ 31:0]  csr_result_e1_value_i
     ,input           csr_result_e1_write_i
     ,input  [ 31:0]  csr_result_e1_wdata_i
@@ -189,6 +194,15 @@ module biriscv_issue
     ,output [  4:0]  cbm_opcode_rb_idx_o
     ,output [ 31:0]  cbm_opcode_ra_operand_o
     ,output [ 31:0]  cbm_opcode_rb_operand_o
+    ,output          mulp_opcode_valid_o
+    ,output [ 31:0]  mulp_opcode_opcode_o
+    ,output [ 31:0]  mulp_opcode_pc_o
+    ,output          mulp_opcode_invalid_o
+    ,output [  4:0]  mulp_opcode_rd_idx_o
+    ,output [  4:0]  mulp_opcode_ra_idx_o
+    ,output [  4:0]  mulp_opcode_rb_idx_o
+    ,output [ 31:0]  mulp_opcode_ra_operand_o
+    ,output [ 31:0]  mulp_opcode_rb_operand_o
     // --- END OF ADDED OUTPUTS ---
     ,output [ 31:0]  csr_opcode_pc_o
     ,output          csr_opcode_invalid_o
@@ -345,6 +359,7 @@ wire       issue_a_mul_w      = (slot0_valid_r ? fetch0_instr_mul_i      : fetch
 wire       issue_a_div_w      = (slot0_valid_r ? fetch0_instr_div_i      : fetch1_instr_div_i);
 wire       issue_a_mule_w     = (slot0_valid_r ? fetch0_instr_mule_i     : fetch1_instr_mule_i); // use mule
 wire       issue_a_cbm_w      = (slot0_valid_r ? fetch0_instr_cbm_i      : fetch1_instr_cbm_i);
+wire       issue_a_mulp_w     = (slot0_valid_r ? fetch0_instr_mulp_i     : fetch1_instr_mulp_i);
 wire       issue_a_csr_w      = (slot0_valid_r ? fetch0_instr_csr_i      : fetch1_instr_csr_i);
 wire       issue_a_invalid_w  = (slot0_valid_r ? fetch0_instr_invalid_i  : fetch1_instr_invalid_i);
 
@@ -420,6 +435,7 @@ u_pipe0_ctrl
     ,.issue_mul_i(issue_a_mul_w)
     ,.issue_mule_i(issue_a_mule_w)
     ,.issue_cbm_i(issue_a_cbm_w)
+    ,.issue_mulp_i(issue_a_mulp_w)
     ,.issue_branch_i(issue_a_branch_w)
     ,.issue_rd_valid_i(issue_a_sb_alloc_w)
     ,.issue_rd_i(issue_a_rd_idx_w)
@@ -474,6 +490,8 @@ u_pipe0_ctrl
     ,.mule_result_i(writeback_mule_value_i)
     ,.cbm_complete_i(writeback_cbm_valid_i)
     ,.cbm_result_i(writeback_cbm_value_i)
+    ,.mulp_complete_i(writeback_mulp_valid_i)
+    ,.mulp_result_i(writeback_mulp_value_i)
 
     // Commit
     ,.valid_wb_o(pipe0_valid_wb_w)
@@ -548,6 +566,7 @@ u_pipe1_ctrl
     ,.issue_mul_i(issue_b_mul_w)
     ,.issue_mule_i(1'b0)
     ,.issue_cbm_i(1'b0)
+    ,.issue_mulp_i(1'b0)
     ,.issue_branch_i(issue_b_branch_w)
     ,.issue_rd_valid_i(issue_b_sb_alloc_w)
     ,.issue_rd_i(issue_b_rd_idx_w)
@@ -602,6 +621,8 @@ u_pipe1_ctrl
     ,.mule_result_i(writeback_mule_value_i)
     ,.cbm_complete_i(writeback_cbm_valid_i)
     ,.cbm_result_i(writeback_cbm_value_i)
+    ,.mulp_complete_i(writeback_mulp_valid_i)
+    ,.mulp_result_i(writeback_mulp_value_i)
 
     // Commit
     ,.valid_wb_o(pipe1_valid_wb_w)
@@ -645,6 +666,7 @@ reg div_pending_q;
 reg csr_pending_q;
 reg mule_pending_q;
 reg cbm_pending_q;
+reg mulp_pending_q;
 
 // Division operations take 2 - 34 cycles and stall
 // the pipeline (complete out-of-pipe) until completed.
@@ -714,6 +736,28 @@ else if (cbm_opcode_valid_o && issue_a_cbm_w)
 else if (writeback_cbm_valid_i)
     cbm_rd_q <= 5'b0;
 
+// MULP block tracking (single outstanding op)
+reg [4:0] mulp_rd_q;
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+    mulp_pending_q <= 1'b0;
+else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
+    mulp_pending_q <= 1'b0;
+else if (mulp_opcode_valid_o && issue_a_mulp_w)
+    mulp_pending_q <= 1'b1;
+else if (writeback_mulp_valid_i)
+    mulp_pending_q <= 1'b0;
+
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+    mulp_rd_q <= 5'b0;
+else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
+    mulp_rd_q <= 5'b0;
+else if (mulp_opcode_valid_o && issue_a_mulp_w)
+    mulp_rd_q <= issue_a_rd_idx_w;
+else if (writeback_mulp_valid_i)
+    mulp_rd_q <= 5'b0;
+
 assign squash_w = pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w;
 
 //-------------------------------------------------------------
@@ -767,6 +811,8 @@ begin
         scoreboard_r[mule_rd_q] = 1'b1;
     if (cbm_pending_q && cbm_rd_q != 5'b0)
         scoreboard_r[cbm_rd_q] = 1'b1;
+    if (mulp_pending_q && mulp_rd_q != 5'b0)
+        scoreboard_r[mulp_rd_q] = 1'b1;
 
     // Execution units with >= 1 cycle latency (loads / multiply)
     if (pipe0_load_e1_w || pipe0_mul_e1_w)
@@ -775,7 +821,7 @@ begin
         scoreboard_r[pipe1_rd_e1_w] = 1'b1;
 
     // Do not start multiply, division or CSR operation in the cycle after a load (leaving only ALU operations and branches)
-    if ((pipe0_load_e1_w || pipe0_store_e1_w || pipe1_load_e1_w || pipe1_store_e1_w ) && (issue_a_mul_w || issue_a_div_w || issue_a_csr_w || issue_a_mule_w || issue_a_cbm_w))
+    if ((pipe0_load_e1_w || pipe0_store_e1_w || pipe1_load_e1_w || pipe1_store_e1_w ) && (issue_a_mul_w || issue_a_div_w || issue_a_csr_w || issue_a_mule_w || issue_a_cbm_w || issue_a_mulp_w))
         scoreboard_r = 32'hFFFFFFFF;
 
     // Stall - no issues...
@@ -787,7 +833,8 @@ else if (opcode_a_valid_r &&
         !(scoreboard_r[issue_a_ra_idx_w] || 
           scoreboard_r[issue_a_rb_idx_w] ||
           scoreboard_r[issue_a_rd_idx_w]) &&
-        ~(issue_a_cbm_w && cbm_pending_q))
+        ~(issue_a_cbm_w && cbm_pending_q) &&
+        ~(issue_a_mulp_w && mulp_pending_q))
 begin
         opcode_a_issue_r  = 1'b1;
         opcode_a_accept_r = 1'b1;
@@ -820,6 +867,7 @@ assign exec0_opcode_valid_o = opcode_a_issue_r;
 assign mul_opcode_valid_o   = enable_muldiv_w & (pipe1_mux_mul_r ? opcode_b_issue_r : opcode_a_issue_r);
 assign div_opcode_valid_o   = enable_muldiv_w & (opcode_a_issue_r);
 assign mule_opcode_valid_o  = enable_muldiv_w & (opcode_a_issue_r & issue_a_mule_w);
+assign mulp_opcode_valid_o  = enable_muldiv_w & (opcode_a_issue_r & issue_a_mulp_w);
 assign interrupt_inhibit_o  = csr_pending_q || issue_a_csr_w;
 
 assign exec1_opcode_valid_o = opcode_b_issue_r;
@@ -1076,6 +1124,18 @@ assign cbm_opcode_rb_idx_o    = opcode0_rb_idx_o;
 assign cbm_opcode_ra_operand_o= opcode0_ra_operand_o;
 assign cbm_opcode_rb_operand_o= opcode0_rb_operand_o;
 assign cbm_opcode_invalid_o   = opcode_a_issue_r && issue_a_invalid_w;
+
+//-------------------------------------------------------------
+// MULP (deep-pipelined multiplier) unit
+//-------------------------------------------------------------
+assign mulp_opcode_opcode_o    = opcode0_opcode_o;
+assign mulp_opcode_pc_o        = opcode0_pc_o;
+assign mulp_opcode_rd_idx_o    = opcode0_rd_idx_o;
+assign mulp_opcode_ra_idx_o    = opcode0_ra_idx_o;
+assign mulp_opcode_rb_idx_o    = opcode0_rb_idx_o;
+assign mulp_opcode_ra_operand_o= opcode0_ra_operand_o;
+assign mulp_opcode_rb_operand_o= opcode0_rb_operand_o;
+assign mulp_opcode_invalid_o   = opcode_a_issue_r && issue_a_invalid_w;
 
 //-------------------------------------------------------------
 // CSR unit
