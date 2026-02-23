@@ -24,3 +24,8 @@ biriscv-testing-ready/
 tb/tb_mul_compare/test_mul_compare.elf
 tb/tb_mul_compare/test_mul_compare.o
 tb/tb_mul_compare/build/tcm.bin
+tb/tb_mul_compare4/build/
+tb/tb_mul_compare4/test_mul_compare4.elf
+tb/tb_mul_compare4/test_mul_compare4.o
+tb/tb_mul_compare4/*.vcd
+tb/tb_mul_compare4/vcds/
