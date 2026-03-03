@@ -254,6 +254,8 @@ wire           mmu_store_fault_w;
 // --- ADD ALL THESE ---
 wire           fetch0_instr_mule_w;
 wire           fetch1_instr_mule_w;
+wire           fetch0_instr_muls_w;
+wire           fetch1_instr_muls_w;
 wire           fetch0_instr_cbm_w;
 wire           fetch1_instr_cbm_w;
 
@@ -271,6 +273,19 @@ wire           mule_hold_w;
 wire           writeback_mule_valid_w;
 wire  [ 31:0]  writeback_mule_value_w;
 wire  [  4:0]  writeback_mule_rd_idx_w;
+
+wire           muls_opcode_valid_w;
+wire  [ 31:0]  muls_opcode_opcode_w;
+wire  [ 31:0]  muls_opcode_pc_w;
+wire           muls_opcode_invalid_w;
+wire  [  4:0]  muls_opcode_rd_idx_w;
+wire  [  4:0]  muls_opcode_ra_idx_w;
+wire  [  4:0]  muls_opcode_rb_idx_w;
+wire  [ 31:0]  muls_opcode_ra_operand_w;
+wire  [ 31:0]  muls_opcode_rb_operand_w;
+wire           writeback_muls_valid_w;
+wire  [ 31:0]  writeback_muls_value_w;
+wire  [  4:0]  writeback_muls_rd_idx_w;
 
 wire           cbm_opcode_valid_w;
 wire  [ 31:0]  cbm_opcode_opcode_w;
@@ -377,7 +392,9 @@ u_frontend
     ,.fetch1_instr_rd_valid_o(fetch1_instr_rd_valid_w)
     ,.fetch1_instr_invalid_o(fetch1_instr_invalid_w)
     ,.fetch0_instr_mule_o(fetch0_instr_mule_w)
+    ,.fetch0_instr_muls_o(fetch0_instr_muls_w)
     ,.fetch1_instr_mule_o(fetch1_instr_mule_w)
+    ,.fetch1_instr_muls_o(fetch1_instr_muls_w)
     ,.fetch0_instr_cbm_o(fetch0_instr_cbm_w)
     ,.fetch1_instr_cbm_o(fetch1_instr_cbm_w)
     ,.fetch0_instr_mulp_o(fetch0_instr_mulp_w)
@@ -590,6 +607,28 @@ u_mule
     ,.writeback_rd_idx_o(writeback_mule_rd_idx_w) // Goes to u_issue
 );
 
+biriscv_multiplier_s
+u_muls
+(
+    // Inputs
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.opcode_valid_i(muls_opcode_valid_w)
+    ,.opcode_opcode_i(muls_opcode_opcode_w)
+    ,.opcode_pc_i(muls_opcode_pc_w)
+    ,.opcode_invalid_i(muls_opcode_invalid_w)
+    ,.opcode_rd_idx_i(muls_opcode_rd_idx_w)
+    ,.opcode_ra_idx_i(muls_opcode_ra_idx_w)
+    ,.opcode_rb_idx_i(muls_opcode_rb_idx_w)
+    ,.opcode_ra_operand_i(muls_opcode_ra_operand_w)
+    ,.opcode_rb_operand_i(muls_opcode_rb_operand_w)
+
+    // Outputs
+    ,.writeback_valid_o(writeback_muls_valid_w)
+    ,.writeback_value_o(writeback_muls_value_w)
+    ,.writeback_rd_idx_o(writeback_muls_rd_idx_w)
+);
+
 column_bypass_multiplier
 u_cbm
 (
@@ -680,6 +719,7 @@ u_issue
     ,.fetch0_instr_rd_valid_i(fetch0_instr_rd_valid_w)
     ,.fetch0_instr_invalid_i(fetch0_instr_invalid_w)
     ,.fetch0_instr_mule_i(fetch0_instr_mule_w)
+    ,.fetch0_instr_muls_i(fetch0_instr_muls_w)
     ,.fetch0_instr_cbm_i(fetch0_instr_cbm_w)
     ,.fetch0_instr_mulp_i(fetch0_instr_mulp_w)
     ,.fetch1_valid_i(fetch1_valid_w)
@@ -696,6 +736,7 @@ u_issue
     ,.fetch1_instr_rd_valid_i(fetch1_instr_rd_valid_w)
     ,.fetch1_instr_invalid_i(fetch1_instr_invalid_w)
     ,.fetch1_instr_mule_i(fetch1_instr_mule_w)
+    ,.fetch1_instr_muls_i(fetch1_instr_muls_w)
     ,.fetch1_instr_cbm_i(fetch1_instr_cbm_w)
     ,.fetch1_instr_mulp_i(fetch1_instr_mulp_w)
     ,.branch_exec0_request_i(branch_exec0_request_w)
@@ -734,6 +775,9 @@ u_issue
     ,.writeback_mule_valid_i(writeback_mule_valid_w)
     ,.writeback_mule_value_i(writeback_mule_value_w)
     ,.writeback_mule_rd_idx_i(writeback_mule_rd_idx_w)
+    ,.writeback_muls_valid_i(writeback_muls_valid_w)
+    ,.writeback_muls_value_i(writeback_muls_value_w)
+    ,.writeback_muls_rd_idx_i(writeback_muls_rd_idx_w)
     ,.writeback_cbm_valid_i(writeback_cbm_valid_w)
     ,.writeback_cbm_value_i(writeback_cbm_value_w)
     ,.writeback_cbm_rd_idx_i(writeback_cbm_rd_idx_w)
@@ -768,6 +812,7 @@ u_issue
     ,.mul_opcode_valid_o(mul_opcode_valid_w)
     ,.div_opcode_valid_o(div_opcode_valid_w)
     ,.mule_opcode_valid_o(mule_opcode_valid_w)
+    ,.muls_opcode_valid_o(muls_opcode_valid_w)
     ,.cbm_opcode_valid_o(cbm_opcode_valid_w)
     ,.mulp_opcode_valid_o(mulp_opcode_valid_w)
     ,.opcode0_opcode_o(opcode0_opcode_w)
@@ -818,6 +863,14 @@ u_issue
     ,.mule_opcode_rb_idx_o(mule_opcode_rb_idx_w)
     ,.mule_opcode_ra_operand_o(mule_opcode_ra_operand_w)
     ,.mule_opcode_rb_operand_o(mule_opcode_rb_operand_w)
+    ,.muls_opcode_opcode_o(muls_opcode_opcode_w)
+    ,.muls_opcode_pc_o(muls_opcode_pc_w)
+    ,.muls_opcode_invalid_o(muls_opcode_invalid_w)
+    ,.muls_opcode_rd_idx_o(muls_opcode_rd_idx_w)
+    ,.muls_opcode_ra_idx_o(muls_opcode_ra_idx_w)
+    ,.muls_opcode_rb_idx_o(muls_opcode_rb_idx_w)
+    ,.muls_opcode_ra_operand_o(muls_opcode_ra_operand_w)
+    ,.muls_opcode_rb_operand_o(muls_opcode_rb_operand_w)
     ,.cbm_opcode_opcode_o(cbm_opcode_opcode_w)
     ,.cbm_opcode_pc_o(cbm_opcode_pc_w)
     ,.cbm_opcode_invalid_o(cbm_opcode_invalid_w)

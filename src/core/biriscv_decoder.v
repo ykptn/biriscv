@@ -39,6 +39,7 @@ module biriscv_decoder
     ,output                       div_o
     ,output                       csr_o
     ,output                       mule_o
+    ,output                       muls_o
     ,output                       cbm_o
     ,output                       mulp_o
     ,output                       rd_valid_o
@@ -106,6 +107,7 @@ wire invalid_w =    valid_i &&
                     (enable_muldiv_i && (opcode_i & `INST_REM_MASK) == `INST_REM)       ||
                     (enable_muldiv_i && (opcode_i & `INST_REMU_MASK) == `INST_REMU)    ||
                     (enable_muldiv_i && (opcode_i & `INST_MULE_MASK) == `INST_MULE)    ||
+                    (enable_muldiv_i && (opcode_i & `INST_MULS_MASK) == `INST_MULS)    ||
                     (enable_muldiv_i && (opcode_i & `INST_CBM_MASK)  == `INST_CBM)   ||
                     (enable_muldiv_i && (opcode_i & `INST_MULP_MASK) == `INST_MULP));
 
@@ -149,6 +151,7 @@ assign rd_valid_o = ((opcode_i & `INST_JALR_MASK) == `INST_JALR)     ||
                     ((opcode_i & `INST_REM_MASK) == `INST_REM)       ||
                     ((opcode_i & `INST_REMU_MASK) == `INST_REMU)     ||
                     ((opcode_i & `INST_CBM_MASK) == `INST_CBM)       ||
+                    ((opcode_i & `INST_MULS_MASK) == `INST_MULS)     ||
                     ((opcode_i & `INST_MULP_MASK) == `INST_MULP)     ||
                     ((opcode_i & `INST_CSRRW_MASK) == `INST_CSRRW)   ||
                     ((opcode_i & `INST_CSRRS_MASK) == `INST_CSRRS)   ||
@@ -228,6 +231,9 @@ assign csr_o =      ((opcode_i & `INST_ECALL_MASK) == `INST_ECALL)            ||
                     
 assign mule_o =     enable_muldiv_i &&
                     (((opcode_i & `INST_MULE_MASK) == `INST_MULE));
+
+assign muls_o =     enable_muldiv_i &&
+                    (((opcode_i & `INST_MULS_MASK) == `INST_MULS));
 
 assign cbm_o  =     enable_muldiv_i &&
                     (((opcode_i & `INST_CBM_MASK)  == `INST_CBM));
