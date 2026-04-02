@@ -551,6 +551,9 @@ u_mul
 );
 
 // Second MUL unit - now using standard multiplier (same as u_mul)
+// Result goes directly to writeback_mule_value_w.
+// pipe1_ctrl in biriscv_issue uses this as its mul_result_e2 source,
+// so no separate mule_writeback_safe path is needed.
 biriscv_multiplier
 u_mul2
 (
@@ -572,24 +575,23 @@ u_mul2
     ,.writeback_value_o(writeback_mule_value_w)
 );
 
-// Generate handshake signals for u_mul2 (standard multiplier doesn't have valid output)
-// Track pipeline stages to generate completion signal
-reg [2:0] mule_pipe_valid_q;
+// Handshake tracking for u_mul2 scoreboard (mule_pending_q in issue module)
+reg [1:0] mule_pipe_valid_q;
 reg [4:0] mule_pipe_rd_idx_q;
 
 always @(posedge clk_i or posedge rst_i)
 if (rst_i) begin
-    mule_pipe_valid_q <= 3'b0;
+    mule_pipe_valid_q <= 2'b0;
     mule_pipe_rd_idx_q <= 5'b0;
 end
 else if (!mul_hold_w) begin
-    // Shift pipeline valid bits (assumes MULT_STAGES = 2, so 3 cycle latency)
-    mule_pipe_valid_q <= {mule_pipe_valid_q[1:0], mule_opcode_valid_w};
+    mule_pipe_valid_q <= {mule_pipe_valid_q[0], mule_opcode_valid_w};
     if (mule_opcode_valid_w)
         mule_pipe_rd_idx_q <= mule_opcode_rd_idx_w;
 end
 
-assign writeback_mule_valid_w  = mule_pipe_valid_q[2];
+// Valid fires 2 cycles after issue (matching u_mul2's pipeline latency)
+assign writeback_mule_valid_w  = mule_pipe_valid_q[1];
 assign writeback_mule_rd_idx_w = mule_pipe_rd_idx_q;
 
 // CBM disabled: tie off CBM signals

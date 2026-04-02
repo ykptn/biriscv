@@ -30,7 +30,7 @@ initial begin
     for (i = 0; i < 131072; i = i + 1)
         mem[i] = 0;
 
-    f = $fopenr("./build/tcm.bin");
+    f = $fopen("./build/tcm.bin", "rb");
     i = $fread(mem, f);
     $display("Loaded %0d bytes from tcm.bin", i);
     for (i = 0; i < 131072; i = i + 1)
@@ -79,6 +79,9 @@ initial begin
     seq_mul1_issued = 1'b0;
     seq_mul2_issued = 1'b0;
 end
+
+// Forward-declare mem_i_pc_w so probes compile
+wire [31:0] mem_i_pc_w;
 
 // Wire probes for internal signals (use memory interface PC as proxy)
 wire [31:0] pc_w = mem_i_pc_w;
@@ -227,7 +230,7 @@ end
 wire        mem_i_rd_w;
 wire        mem_i_flush_w;
 wire        mem_i_invalidate_w;
-wire [31:0] mem_i_pc_w;
+// mem_i_pc_w already declared above
 wire        mem_i_accept_w;
 wire        mem_i_valid_w;
 wire        mem_i_error_w;

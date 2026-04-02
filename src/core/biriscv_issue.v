@@ -583,7 +583,7 @@ u_pipe1_ctrl
     ,.mem_complete_i(writeback_mem_valid_i)
     ,.mem_result_e2_i(writeback_mem_value_i)
     ,.mem_exception_e2_i(writeback_mem_exception_i)
-    ,.mul_result_e2_i(writeback_mul_value_i)
+    ,.mul_result_e2_i(writeback_mule_value_i)  // Pipe B MUL uses u_mul2 result
 
     // Execution stage 2
     ,.load_e2_o(pipe1_load_e2_w)
@@ -844,19 +844,15 @@ wire [31:0] issue_a_rb_value_w;
 wire [31:0] issue_b_ra_value_w;
 wire [31:0] issue_b_rb_value_w;
 
-// MULE direct writeback (bypass pipe stages when result ready)
-wire mule_writeback_safe_w = writeback_mule_valid_i && 
-                              mule_pending_q && 
-                              ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
-wire cbm_writeback_safe_w  = writeback_cbm_valid_i &&
-                              cbm_pending_q &&
-                              ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
+// MULE direct writeback disabled: pipe B MUL result now flows through pipe1_ctrl normally
+wire mule_writeback_safe_w = 1'b0;
+wire cbm_writeback_safe_w  = 1'b0;
 
-wire [4:0]  pipe0_rd_wb_after_mule_w    = mule_writeback_safe_w ? writeback_mule_rd_idx_i : pipe0_rd_wb_w;
-wire [31:0] pipe0_result_wb_after_mule_w = mule_writeback_safe_w ? writeback_mule_value_i : pipe0_result_wb_w;
+wire [4:0]  pipe0_rd_wb_after_mule_w    = pipe0_rd_wb_w;
+wire [31:0] pipe0_result_wb_after_mule_w = pipe0_result_wb_w;
 
-wire [4:0]  pipe0_rd_wb_muxed_w    = cbm_writeback_safe_w ? writeback_cbm_rd_idx_i : pipe0_rd_wb_after_mule_w;
-wire [31:0] pipe0_result_wb_muxed_w = cbm_writeback_safe_w ? writeback_cbm_value_i   : pipe0_result_wb_after_mule_w;
+wire [4:0]  pipe0_rd_wb_muxed_w    = pipe0_rd_wb_after_mule_w;
+wire [31:0] pipe0_result_wb_muxed_w = pipe0_result_wb_after_mule_w;
 
 // Register file: 2W4R
 biriscv_regfile
