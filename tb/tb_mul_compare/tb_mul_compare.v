@@ -110,6 +110,29 @@ wire [31:0] reg_iteration_w   = u_dut.u_issue.u_regfile.REGFILE.reg_r15_q;
 wire [31:0] reg_operand_a_w   = u_dut.u_issue.u_regfile.REGFILE.reg_r16_q;
 wire [31:0] reg_operand_b_w   = u_dut.u_issue.u_regfile.REGFILE.reg_r17_q;
 
+wire          mem_i_rd_w;
+wire          mem_i_flush_w;
+wire          mem_i_invalidate_w;
+wire [ 31:0]  mem_i_pc_w;
+wire [ 31:0]  mem_d_addr_w;
+wire [ 31:0]  mem_d_data_wr_w;
+wire          mem_d_rd_w;
+wire [  3:0]  mem_d_wr_w;
+wire          mem_d_cacheable_w;
+wire [ 10:0]  mem_d_req_tag_w;
+wire          mem_d_invalidate_w;
+wire          mem_d_writeback_w;
+wire          mem_d_flush_w;
+wire          mem_i_accept_w;
+wire          mem_i_valid_w;
+wire          mem_i_error_w;
+wire [ 63:0]  mem_i_inst_w;
+wire [ 31:0]  mem_d_data_rd_w;
+wire          mem_d_accept_w;
+wire          mem_d_ack_w;
+wire          mem_d_error_w;
+wire [ 10:0]  mem_d_resp_tag_w;
+
 task automatic report_summary;
     input pass;
     input [31:0] pc_value;
@@ -407,29 +430,6 @@ end
 initial begin
     forever clk = #5 ~clk;
 end
-
-wire          mem_i_rd_w;
-wire          mem_i_flush_w;
-wire          mem_i_invalidate_w;
-wire [ 31:0]  mem_i_pc_w;
-wire [ 31:0]  mem_d_addr_w;
-wire [ 31:0]  mem_d_data_wr_w;
-wire          mem_d_rd_w;
-wire [  3:0]  mem_d_wr_w;
-wire          mem_d_cacheable_w;
-wire [ 10:0]  mem_d_req_tag_w;
-wire          mem_d_invalidate_w;
-wire          mem_d_writeback_w;
-wire          mem_d_flush_w;
-wire          mem_i_accept_w;
-wire          mem_i_valid_w;
-wire          mem_i_error_w;
-wire [ 63:0]  mem_i_inst_w;
-wire [ 31:0]  mem_d_data_rd_w;
-wire          mem_d_accept_w;
-wire          mem_d_ack_w;
-wire          mem_d_error_w;
-wire [ 10:0]  mem_d_resp_tag_w;
 
 riscv_core u_dut
 (
