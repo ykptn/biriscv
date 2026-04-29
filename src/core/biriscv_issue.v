@@ -787,7 +787,8 @@ else if (opcode_a_valid_r &&
         !(scoreboard_r[issue_a_ra_idx_w] || 
           scoreboard_r[issue_a_rb_idx_w] ||
           scoreboard_r[issue_a_rd_idx_w]) &&
-        ~(issue_a_cbm_w && cbm_pending_q))
+    ~(issue_a_cbm_w && cbm_pending_q) &&
+    ~(issue_a_mule_w && mule_pending_q))
 begin
         opcode_a_issue_r  = 1'b1;
         opcode_a_accept_r = 1'b1;
