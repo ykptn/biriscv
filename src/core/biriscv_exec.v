@@ -251,8 +251,7 @@ if (rst_i)
 else if (~hold_i)
     result_q <= alu_p_w;
 
-//assign writeback_value_o  = result_q;
-assign writeback_value_o  = mule_complete_i ? mule_result_i : result_q;
+assign writeback_value_o  = result_q;
 
 //-----------------------------------------------------------------
 // less_than_signed: Less than operator (signed)
