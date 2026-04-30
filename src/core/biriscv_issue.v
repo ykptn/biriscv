@@ -723,6 +723,19 @@ reg [31:0] scoreboard_r;
 reg        pipe1_mux_lsu_r;
 reg        pipe1_mux_mul_r;
 
+wire mule_writeback_safe_w = writeback_mule_valid_i &&
+                              mule_pending_q &&
+                              ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
+wire cbm_writeback_safe_w  = writeback_cbm_valid_i &&
+                              cbm_pending_q &&
+                              ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
+wire mule_pending_hazard_w = mule_pending_q &&
+                              mule_rd_q != 5'b0 &&
+                              !(mule_writeback_safe_w && (writeback_mule_rd_idx_i == mule_rd_q));
+wire cbm_pending_hazard_w  = cbm_pending_q &&
+                              cbm_rd_q != 5'b0 &&
+                              !(cbm_writeback_safe_w && (writeback_cbm_rd_idx_i == cbm_rd_q));
+
 // Check instructions can be issued in the second execution unit
 wire pipe1_ok_w      = issue_b_exec_w | issue_b_branch_w | issue_b_lsu_w | issue_b_mul_w;
 
@@ -730,10 +743,10 @@ wire pipe1_ok_w      = issue_b_exec_w | issue_b_branch_w | issue_b_lsu_w | issue
 // This excludes result dependencies which may also block secondary execution.
 wire dual_issue_ok_w =   enable_dual_issue_w &&  // Second pipe switched on
                          pipe1_ok_w &&           // Instruction 2 is possible on second exec unit
-                        (((issue_a_exec_w | issue_a_lsu_w | issue_a_mul_w) && issue_b_exec_w)   ||
-                         ((issue_a_exec_w | issue_a_lsu_w | issue_a_mul_w) && issue_b_branch_w) ||
-                         ((issue_a_exec_w | issue_a_mul_w) && issue_b_lsu_w)                    ||
-                         ((issue_a_exec_w | issue_a_lsu_w) && issue_b_mul_w)
+                        (((issue_a_exec_w | issue_a_lsu_w | issue_a_mul_w | issue_a_mule_w) && issue_b_exec_w)   ||
+                         ((issue_a_exec_w | issue_a_lsu_w | issue_a_mul_w | issue_a_mule_w) && issue_b_branch_w) ||
+                         ((issue_a_exec_w | issue_a_mul_w | issue_a_mule_w) && issue_b_lsu_w)                    ||
+                         ((issue_a_exec_w | issue_a_lsu_w | issue_a_mule_w) && issue_b_mul_w)
                          ) && ~take_interrupt_i;
 
 always @ *
@@ -763,9 +776,9 @@ begin
     end
 
     // MULE is multi-cycle (5 cycles) so track in scoreboard while pending
-    if (mule_pending_q && mule_rd_q != 5'b0)
+    if (mule_pending_hazard_w)
         scoreboard_r[mule_rd_q] = 1'b1;
-    if (cbm_pending_q && cbm_rd_q != 5'b0)
+    if (cbm_pending_hazard_w)
         scoreboard_r[cbm_rd_q] = 1'b1;
 
     // Execution units with >= 1 cycle latency (loads / multiply)
@@ -840,14 +853,6 @@ wire [31:0] issue_a_ra_value_w;
 wire [31:0] issue_a_rb_value_w;
 wire [31:0] issue_b_ra_value_w;
 wire [31:0] issue_b_rb_value_w;
-
-// MULE direct writeback (bypass pipe stages when result ready)
-wire mule_writeback_safe_w = writeback_mule_valid_i && 
-                              mule_pending_q && 
-                              ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
-wire cbm_writeback_safe_w  = writeback_cbm_valid_i &&
-                              cbm_pending_q &&
-                              ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
 
 wire [4:0]  pipe0_rd_wb_after_mule_w    = mule_writeback_safe_w ? writeback_mule_rd_idx_i : pipe0_rd_wb_w;
 wire [31:0] pipe0_result_wb_after_mule_w = mule_writeback_safe_w ? writeback_mule_value_i : pipe0_result_wb_w;
