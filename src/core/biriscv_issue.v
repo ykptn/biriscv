@@ -357,6 +357,7 @@ wire       issue_b_exec_w     = fetch1_instr_exec_i;
 wire       issue_b_lsu_w      = fetch1_instr_lsu_i;
 wire       issue_b_branch_w   = fetch1_instr_branch_i;
 wire       issue_b_mul_w      = fetch1_instr_mul_i;
+wire       issue_b_mule_w     = fetch1_instr_mule_i;
 wire       issue_b_div_w      = fetch1_instr_div_i;
 wire       issue_b_csr_w      = fetch1_instr_csr_i;
 wire       issue_b_invalid_w  = fetch1_instr_invalid_i;
@@ -546,7 +547,7 @@ u_pipe1_ctrl
     ,.issue_csr_i(1'b0)
     ,.issue_div_i(1'b0)
     ,.issue_mul_i(issue_b_mul_w)
-    ,.issue_mule_i(1'b0)
+    ,.issue_mule_i(issue_b_mule_w)
     ,.issue_cbm_i(1'b0)
     ,.issue_branch_i(issue_b_branch_w)
     ,.issue_rd_valid_i(issue_b_sb_alloc_w)
@@ -645,6 +646,7 @@ reg div_pending_q;
 reg csr_pending_q;
 reg mule_pending_q;
 reg cbm_pending_q;
+wire [4:0] mule_issue_rd_idx_w;
 
 // Division operations take 2 - 34 cycles and stall
 // the pipeline (complete out-of-pipe) until completed.
@@ -675,7 +677,7 @@ if (rst_i)
     mule_pending_q <= 1'b0;
 else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
     mule_pending_q <= 1'b0;
-else if (mule_opcode_valid_o && issue_a_mule_w)
+else if (mule_opcode_valid_o)
     mule_pending_q <= 1'b1;
 else if (writeback_mule_valid_i)
     mule_pending_q <= 1'b0;
@@ -688,8 +690,8 @@ if (rst_i)
     mule_rd_q <= 5'b0;
 else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
     mule_rd_q <= 5'b0;
-else if (mule_opcode_valid_o && issue_a_mule_w)
-    mule_rd_q <= issue_a_rd_idx_w;
+else if (mule_opcode_valid_o)
+    mule_rd_q <= mule_issue_rd_idx_w;
 else if (writeback_mule_valid_i)
     mule_rd_q <= 5'b0;
 
@@ -722,6 +724,7 @@ assign squash_w = pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w;
 reg [31:0] scoreboard_r;
 reg        pipe1_mux_lsu_r;
 reg        pipe1_mux_mul_r;
+reg        pipe1_mux_mule_r;
 
 wire mule_writeback_safe_w = writeback_mule_valid_i &&
                               mule_pending_q &&
@@ -737,7 +740,7 @@ wire cbm_pending_hazard_w  = cbm_pending_q &&
                               !(cbm_writeback_safe_w && (writeback_cbm_rd_idx_i == cbm_rd_q));
 
 // Check instructions can be issued in the second execution unit
-wire pipe1_ok_w      = issue_b_exec_w | issue_b_branch_w | issue_b_lsu_w | issue_b_mul_w;
+wire pipe1_ok_w      = issue_b_exec_w | issue_b_branch_w | issue_b_lsu_w | issue_b_mul_w | issue_b_mule_w;
 
 // Is this combination of instructions possible to execute concurrently.
 // This excludes result dependencies which may also block secondary execution.
@@ -746,7 +749,8 @@ wire dual_issue_ok_w =   enable_dual_issue_w &&  // Second pipe switched on
                         (((issue_a_exec_w | issue_a_lsu_w | issue_a_mul_w | issue_a_mule_w) && issue_b_exec_w)   ||
                          ((issue_a_exec_w | issue_a_lsu_w | issue_a_mul_w | issue_a_mule_w) && issue_b_branch_w) ||
                          ((issue_a_exec_w | issue_a_mul_w | issue_a_mule_w) && issue_b_lsu_w)                    ||
-                         ((issue_a_exec_w | issue_a_lsu_w | issue_a_mule_w) && issue_b_mul_w)
+                         ((issue_a_exec_w | issue_a_lsu_w | issue_a_mule_w) && issue_b_mul_w)                    ||
+                         ((issue_a_exec_w | issue_a_lsu_w | issue_a_mul_w)  && issue_b_mule_w)
                          ) && ~take_interrupt_i;
 
 always @ *
@@ -758,6 +762,7 @@ begin
     scoreboard_r         = 32'b0;
     pipe1_mux_lsu_r      = 1'b0;
     pipe1_mux_mul_r      = 1'b0;
+    pipe1_mux_mule_r     = 1'b0;
 
     // Execution units with >= 2 cycle latency
     if (SUPPORT_LOAD_BYPASS == 0)
@@ -813,7 +818,7 @@ begin
     // Stall - no issues...
     if (lsu_stall_i || stall_w || div_pending_q || csr_pending_q)
         ;
-    // Secondary Slot (lsu, branch, alu, mul)
+    // Secondary Slot (lsu, branch, alu, mul, mule)
     else if (dual_issue_ok_w && opcode_b_valid_r && opcode_a_accept_r &&
         !(scoreboard_r[issue_b_ra_idx_w] || 
           scoreboard_r[issue_b_rb_idx_w] ||
@@ -823,6 +828,7 @@ begin
         opcode_b_accept_r = 1'b1;
         pipe1_mux_lsu_r   = issue_b_lsu_w;
         pipe1_mux_mul_r   = issue_b_mul_w;
+        pipe1_mux_mule_r  = issue_b_mule_w;
 
         if (opcode_b_accept_r && issue_b_sb_alloc_w && (|issue_b_rd_idx_w))
             scoreboard_r[issue_b_rd_idx_w] = 1'b1;
@@ -833,7 +839,8 @@ assign lsu_opcode_valid_o   = (pipe1_mux_lsu_r ? opcode_b_issue_r : opcode_a_iss
 assign exec0_opcode_valid_o = opcode_a_issue_r;
 assign mul_opcode_valid_o   = enable_muldiv_w & (pipe1_mux_mul_r ? opcode_b_issue_r : opcode_a_issue_r);
 assign div_opcode_valid_o   = enable_muldiv_w & (opcode_a_issue_r);
-assign mule_opcode_valid_o  = enable_muldiv_w & (opcode_a_issue_r & issue_a_mule_w);
+assign mule_opcode_valid_o  = enable_muldiv_w & (pipe1_mux_mule_r ? (opcode_b_issue_r & issue_b_mule_w)
+                                                                : (opcode_a_issue_r & issue_a_mule_w));
 assign interrupt_inhibit_o  = csr_pending_q || issue_a_csr_w;
 
 assign exec1_opcode_valid_o = opcode_b_issue_r;
@@ -1064,14 +1071,16 @@ assign mul_opcode_invalid_o     = 1'b0;
 //-------------------------------------------------------------
 // MULE unit
 //-------------------------------------------------------------
-assign mule_opcode_opcode_o     = opcode0_opcode_o;
-assign mule_opcode_pc_o         = opcode0_pc_o;
-assign mule_opcode_rd_idx_o     = opcode0_rd_idx_o;
-assign mule_opcode_ra_idx_o     = opcode0_ra_idx_o;
-assign mule_opcode_rb_idx_o     = opcode0_rb_idx_o;
-assign mule_opcode_ra_operand_o = opcode0_ra_operand_o;
-assign mule_opcode_rb_operand_o = opcode0_rb_operand_o;
-assign mule_opcode_invalid_o    = opcode_a_issue_r && issue_a_invalid_w;
+assign mule_issue_rd_idx_w      = pipe1_mux_mule_r ? issue_b_rd_idx_w    : issue_a_rd_idx_w;
+assign mule_opcode_opcode_o     = pipe1_mux_mule_r ? opcode1_opcode_o    : opcode0_opcode_o;
+assign mule_opcode_pc_o         = pipe1_mux_mule_r ? opcode1_pc_o        : opcode0_pc_o;
+assign mule_opcode_rd_idx_o     = pipe1_mux_mule_r ? opcode1_rd_idx_o    : opcode0_rd_idx_o;
+assign mule_opcode_ra_idx_o     = pipe1_mux_mule_r ? opcode1_ra_idx_o    : opcode0_ra_idx_o;
+assign mule_opcode_rb_idx_o     = pipe1_mux_mule_r ? opcode1_rb_idx_o    : opcode0_rb_idx_o;
+assign mule_opcode_ra_operand_o = pipe1_mux_mule_r ? opcode1_ra_operand_o : opcode0_ra_operand_o;
+assign mule_opcode_rb_operand_o = pipe1_mux_mule_r ? opcode1_rb_operand_o : opcode0_rb_operand_o;
+assign mule_opcode_invalid_o    = pipe1_mux_mule_r ? (opcode_b_issue_r && issue_b_invalid_w)
+                                                   : (opcode_a_issue_r && issue_a_invalid_w);
 
 assign cbm_opcode_valid_o     = enable_muldiv_w & (opcode_a_issue_r & issue_a_cbm_w);
 assign cbm_opcode_opcode_o    = opcode0_opcode_o;
