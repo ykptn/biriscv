@@ -822,7 +822,8 @@ begin
     else if (dual_issue_ok_w && opcode_b_valid_r && opcode_a_accept_r &&
         !(scoreboard_r[issue_b_ra_idx_w] || 
           scoreboard_r[issue_b_rb_idx_w] ||
-          scoreboard_r[issue_b_rd_idx_w]))
+          scoreboard_r[issue_b_rd_idx_w]) &&
+    ~(issue_b_mule_w && mule_pending_q))
     begin
         opcode_b_issue_r  = 1'b1;
         opcode_b_accept_r = 1'b1;
