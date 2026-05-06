@@ -6,7 +6,8 @@ ELF_FILE ?= matmul_absorbtion.elf
 CC      = riscv64-unknown-elf-gcc
 OBJCOPY = riscv64-unknown-elf-objcopy
 
-TRACE ?= 1
+TRACE ?= 0
+TRACE_VCD ?= 0
 
 SRC_V_DIR ?= ../../src/core .
 SRC_V_EXTRA = ../tb_mul/tcm_mem.v ../tb_mul/tcm_mem_ram.v
@@ -15,7 +16,7 @@ EXE ?= output.out
 BUILD_DIR ?= build/
 
 BENCH_SRC ?= ../matmul_absorbtion\ test/matmul.c
-STARTUP_SRC ?= start.S
+STARTUP_SRC ?= start_bench.S
 SUPPORT_SRC ?= bench_stdio_stub.c
 
 CFLAGS ?= -march=rv32im -mabi=ilp32 -O2 -ffreestanding -fno-builtin -fno-common -msmall-data-limit=0 -I. -DMATMUL_DISABLE_STDIO
@@ -23,6 +24,7 @@ LDFLAGS ?= -march=rv32im -mabi=ilp32 -nostdlib -nostartfiles -Wl,-Tlink.ld -Wl,-
 
 VFLAGS += $(patsubst %,-I%,$(SRC_V_DIR))
 VFLAGS += -DTRACE=$(TRACE)
+VFLAGS += -DTRACE_VCD=$(TRACE_VCD)
 VFLAGS += -Dverilog_sim
 
 all: run

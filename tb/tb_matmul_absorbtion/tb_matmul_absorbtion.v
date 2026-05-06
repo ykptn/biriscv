@@ -16,7 +16,7 @@ integer f;
 initial begin
     $display("Starting benchmark runner");
 
-    if (`TRACE) begin
+    if (`TRACE_VCD) begin
         $dumpfile("waveform.vcd");
         $dumpvars(0, tb_matmul_absorbtion);
     end
@@ -52,6 +52,8 @@ reg fail_reported;
 wire [31:0] return_code_w = u_dut.u_issue.u_regfile.REGFILE.reg_r10_q;
 wire        pipe0_retire_w = u_dut.u_issue.pipe0_valid_wb_w;
 wire        pipe1_retire_w = u_dut.u_issue.pipe1_valid_wb_w;
+wire [31:0] pipe0_retire_pc_w = u_dut.u_issue.pipe0_pc_wb_w;
+wire [31:0] pipe1_retire_pc_w = u_dut.u_issue.pipe1_pc_wb_w;
 wire [31:0] pipe0_retire_opcode_w = u_dut.u_issue.pipe0_opc_wb_w;
 wire [31:0] pipe1_retire_opcode_w = u_dut.u_issue.pipe1_opc_wb_w;
 
@@ -106,6 +108,19 @@ begin
 end
 endtask
 
+task emit_retire_trace;
+    input integer slot;
+    input [31:0] pc;
+    input [31:0] opcode;
+begin
+    $display("retire_trace slot=%0d cycle=%0d pc=0x%08h opcode=0x%08h",
+             slot,
+             cycle_count,
+             pc,
+             opcode);
+end
+endtask
+
 initial begin
     cycle_count = 0;
     retired_instr_count = 0;
@@ -134,6 +149,13 @@ always @(posedge clk) begin
         retired_mule_count <= retired_mule_count + mule_count_w;
         retired_mulh_family_count <= retired_mulh_family_count + mulh_family_count_w;
         retired_integer_mul_count <= retired_integer_mul_count + integer_mul_count_w;
+
+        if (`TRACE) begin
+            if (pipe0_retire_w)
+                emit_retire_trace(0, pipe0_retire_pc_w, pipe0_retire_opcode_w);
+            if (pipe1_retire_w)
+                emit_retire_trace(1, pipe1_retire_pc_w, pipe1_retire_opcode_w);
+        end
 
         if (!pass_reported && mem_i_pc_w == PASS_PC) begin
             pass_reported <= 1'b1;

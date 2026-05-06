@@ -1,6 +1,7 @@
 .section .text
 .align 4
 .globl _start
+.extern bench_verify_output
 
 .option norelax
 .equ PASS_OFFSET, 0x130
@@ -22,6 +23,8 @@ boot_main:
     la   sp, stack_top
     call main
 
+    bnez a0, fail_loop
+    call bench_verify_output
     bnez a0, fail_loop
     j    pass_loop
 

@@ -20,6 +20,7 @@ WORKSPACE_ROOT = BIRISCV_ROOT.parent
 DEFAULT_ANALYSIS_DIR = WORKSPACE_ROOT / "riscv_dependency_analysis"
 BUILD_DIR = TB_DIR / "build"
 RESULTS_DIR = TB_DIR / "sweep_results"
+DEFAULT_EXPECTED_OUTPUTS = TB_DIR / "expected_outputs.json"
 TEXT_BASE = 0x80000000
 SPECIAL_SMALL_N = {
     "matmul.c": 16,
@@ -119,6 +120,45 @@ def replace_macro_value(source_text: str, macro_name: str, value: int) -> tuple[
     return pattern.sub(repl, source_text, count=1), changed
 
 
+def load_expected_outputs(path: Path) -> dict[str, dict[str, dict[str, object]]]:
+    if not path.exists():
+        raise CommandError(f"expected output manifest not found: {path}")
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise CommandError(f"expected output manifest must be a JSON object: {path}")
+
+    manifest: dict[str, dict[str, dict[str, object]]] = {}
+    for benchmark, size_map in payload.items():
+        if not isinstance(benchmark, str) or not isinstance(size_map, dict):
+            raise CommandError(f"invalid expected output entry for {benchmark!r} in {path}")
+        manifest[benchmark] = {}
+        for size_label, expected_output in size_map.items():
+            if not isinstance(size_label, str) or not isinstance(expected_output, dict):
+                raise CommandError(
+                    f"invalid expected output mapping for {benchmark!r}/{size_label!r} in {path}"
+                )
+            manifest[benchmark][size_label] = expected_output
+
+    return manifest
+
+
+def lookup_expected_output(
+    manifest: dict[str, dict[str, dict[str, object]]],
+    benchmark: str,
+    size_label: str,
+) -> dict[str, object]:
+    benchmark_outputs = manifest.get(benchmark)
+    if benchmark_outputs is None:
+        raise CommandError(f"missing expected output for benchmark {benchmark}")
+
+    expected_output = benchmark_outputs.get(size_label)
+    if expected_output is None:
+        raise CommandError(f"missing expected output for benchmark {benchmark} size {size_label}")
+
+    return expected_output
+
+
 def detect_stride(source_text: str) -> int:
     matches = [
         int(match.group(1))
@@ -179,6 +219,15 @@ def compute_size_plan(source_path: Path, source_text: str) -> SizePlan:
     )
 
 
+def build_size_configs(size_plan: SizePlan) -> list[tuple[str, Optional[int], Optional[int]]]:
+    size_configs = [("small", size_plan.primary_n, size_plan.primary_k)]
+    if size_plan.primary_n is None:
+        size_configs = [("base", None, size_plan.primary_k)]
+    if size_plan.secondary_n is not None:
+        size_configs.append(("tiny", size_plan.secondary_n, size_plan.secondary_k))
+    return size_configs
+
+
 def stage_source(source_path: Path, output_path: Path, n_value: Optional[int], k_value: Optional[int]) -> None:
     source_text = source_path.read_text(encoding="utf-8")
 
@@ -191,7 +240,100 @@ def stage_source(source_path: Path, output_path: Path, n_value: Optional[int], k
     output_path.write_text(source_text, encoding="utf-8")
 
 
-def compile_benchmark(stage_source_path: Path, build_root: Path) -> tuple[Path, Path, str]:
+def write_expected_output_source(output_path: Path, expected_output: dict[str, object]) -> None:
+    kind = expected_output.get("kind")
+
+    if kind == "literal":
+        source_text = """#include <stddef.h>
+
+extern char bench_literal_text[];
+extern char bench_format_suffix[];
+extern unsigned int bench_output_kind;
+extern unsigned int bench_output_overflow;
+
+static int bench_output_matches(const char *actual, const char *expected)
+{
+    while (*actual || *expected)
+    {
+        if (*actual != *expected)
+            return 0;
+        actual++;
+        expected++;
+    }
+
+    return 1;
+}
+
+int bench_verify_output(void)
+{
+    static const char expected_text[] = %s;
+    static const char expected_suffix[] = %s;
+
+    if (bench_output_overflow || bench_output_kind != 1U)
+        return 1;
+
+    return (
+        bench_output_matches(bench_literal_text, expected_text) &&
+        bench_output_matches(bench_format_suffix, expected_suffix)
+    ) ? 0 : 1;
+}
+""" % (
+            json.dumps(str(expected_output.get("text", ""))),
+            json.dumps(str(expected_output.get("suffix", ""))),
+        )
+    elif kind == "signed_value":
+        source_text = """#include <stddef.h>
+
+extern char bench_format_prefix[];
+extern char bench_format_suffix[];
+extern long long bench_last_signed_value;
+extern unsigned int bench_output_kind;
+extern unsigned int bench_output_overflow;
+
+static int bench_output_matches(const char *actual, const char *expected)
+{
+    while (*actual || *expected)
+    {
+        if (*actual != *expected)
+            return 0;
+        actual++;
+        expected++;
+    }
+
+    return 1;
+}
+
+int bench_verify_output(void)
+{
+    static const char expected_prefix[] = %s;
+    static const char expected_suffix[] = %s;
+    static const long long expected_value = %s;
+
+    if (bench_output_overflow || bench_output_kind != 2U)
+        return 1;
+
+    return (
+        bench_output_matches(bench_format_prefix, expected_prefix) &&
+        bench_output_matches(bench_format_suffix, expected_suffix) &&
+        bench_last_signed_value == expected_value
+    ) ? 0 : 1;
+}
+""" % (
+            json.dumps(str(expected_output.get("prefix", ""))),
+            json.dumps(str(expected_output.get("suffix", ""))),
+            int(expected_output.get("value", 0)),
+        )
+    else:
+        raise CommandError(f"unsupported expected output kind: {kind!r}")
+
+    output_path.write_text(source_text, encoding="utf-8")
+
+
+def compile_benchmark(
+    stage_source_path: Path,
+    build_root: Path,
+    expected_output: Optional[str] = None,
+) -> tuple[Path, Path, str]:
     gcc = "riscv64-unknown-elf-gcc"
     objcopy = "riscv64-unknown-elf-objcopy"
     objdump = "riscv64-unknown-elf-objdump"
@@ -200,6 +342,8 @@ def compile_benchmark(stage_source_path: Path, build_root: Path) -> tuple[Path, 
     start_obj = build_root / "start.o"
     bench_obj = build_root / "bench_main.o"
     support_obj = build_root / "bench_support.o"
+    expected_obj = build_root / "bench_expected.o"
+    expected_source = build_root / "bench_expected.c"
     elf_path = build_root / "benchmark.elf"
     bin_path = build_root / "benchmark.bin"
 
@@ -217,6 +361,13 @@ def compile_benchmark(stage_source_path: Path, build_root: Path) -> tuple[Path, 
     run_command([gcc, *common_cflags, "-c", str(TB_DIR / "start_bench.S"), "-o", str(start_obj)], TB_DIR)
     run_command([gcc, *common_cflags, "-c", str(stage_source_path), "-o", str(bench_obj)], TB_DIR)
     run_command([gcc, *common_cflags, "-c", str(TB_DIR / "bench_stdio_stub.c"), "-o", str(support_obj)], TB_DIR)
+
+    link_inputs = [str(start_obj), str(bench_obj), str(support_obj)]
+    if expected_output is not None:
+        write_expected_output_source(expected_source, expected_output)
+        run_command([gcc, *common_cflags, "-c", str(expected_source), "-o", str(expected_obj)], TB_DIR)
+        link_inputs.append(str(expected_obj))
+
     run_command(
         [
             gcc,
@@ -228,9 +379,7 @@ def compile_benchmark(stage_source_path: Path, build_root: Path) -> tuple[Path, 
             "-Wl,--gc-sections",
             "-o",
             str(elf_path),
-            str(start_obj),
-            str(bench_obj),
-            str(support_obj),
+            *link_inputs,
             "-lgcc",
         ],
         TB_DIR,
@@ -484,7 +633,9 @@ def write_markdown_summary(path: Path, benchmark_summaries: list[dict[str, objec
     lines = [
         "# Benchmark Sweep Summary",
         "",
-        f"Executed benchmarks: {aggregate['executed_benchmarks']}",
+        f"Primary all-mul completions: {aggregate['executed_benchmarks']}",
+        f"Matched primary runs (all-mul + all-mule): {aggregate['matched_primary_benchmarks']}",
+        f"Primary runs missing an all-mule completion: {aggregate['dynamic_primary_incomplete_benchmarks']}",
         f"Unsupported benchmarks: {aggregate['unsupported_benchmarks']}",
         "",
         "## Aggregate Static Counts (primary all-mul builds)",
@@ -495,7 +646,7 @@ def write_markdown_summary(path: Path, benchmark_summaries: list[dict[str, objec
         f"- floating fmul total: {aggregate['static_fmul_total']}",
         f"- floating fused multiply-add total: {aggregate['static_fused_fmul_total']}",
         "",
-        "## Aggregate Dynamic Counts (primary runs)",
+        "## Aggregate Dynamic Counts (matched primary runs)",
         "",
         f"- all-mul retired instructions: {aggregate['dynamic_all_mul_retired_total_instructions']}",
         f"- all-mul retired integer multiplies: {aggregate['dynamic_all_mul_retired_integer_multiply_total']}",
@@ -547,12 +698,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run all-mul vs all-mule benchmark sweeps on biRISC-V.")
     parser.add_argument("--analysis-dir", type=Path, default=DEFAULT_ANALYSIS_DIR)
     parser.add_argument("--results-dir", type=Path, default=RESULTS_DIR)
+    parser.add_argument("--expected-outputs", type=Path, default=DEFAULT_EXPECTED_OUTPUTS)
     parser.add_argument("--bench", action="append", default=[], help="Benchmark stem or filename to run")
     args = parser.parse_args()
 
     analysis_dir = args.analysis_dir.resolve()
     results_dir = args.results_dir.resolve()
     results_dir.mkdir(parents=True, exist_ok=True)
+    expected_outputs = load_expected_outputs(args.expected_outputs.resolve())
 
     build_verilog()
     sources = select_sources(analysis_dir, args.bench)
@@ -568,11 +721,7 @@ def main() -> int:
         print(f"[run] {source_path.name}", flush=True)
         source_text = source_path.read_text(encoding="utf-8")
         size_plan = compute_size_plan(source_path, source_text)
-        size_configs = [("small", size_plan.primary_n, size_plan.primary_k)]
-        if size_plan.primary_n is None:
-            size_configs = [("base", None, size_plan.primary_k)]
-        if size_plan.secondary_n is not None:
-            size_configs.append(("tiny", size_plan.secondary_n, size_plan.secondary_k))
+        size_configs = build_size_configs(size_plan)
 
         benchmark_rows: list[RunResult] = []
         benchmark_failed = False
@@ -584,7 +733,12 @@ def main() -> int:
             build_root = results_dir / "build_artifacts" / source_path.stem / size_label / "all-mul"
 
             try:
-                _, mul_bin_path, disassembly = compile_benchmark(stage_source_path, build_root)
+                expected_output = lookup_expected_output(expected_outputs, source_path.stem, size_label)
+                _, mul_bin_path, disassembly = compile_benchmark(
+                    stage_source_path,
+                    build_root,
+                    expected_output=expected_output,
+                )
                 records = parse_disassembly(disassembly)
                 static_inventory = collect_static_inventory(records)
 
@@ -674,26 +828,52 @@ def main() -> int:
     raw_rows = [asdict(result) for result in raw_results]
     summary_rows = benchmark_summaries
 
-    primary_rows = [
-        row
-        for row in raw_results
-        if row.status == "pass" and row.size_label in {"small", "base"}
+    primary_index: dict[str, dict[str, RunResult]] = {}
+    for row in raw_results:
+        if row.size_label not in {"small", "base"}:
+            continue
+        primary_index.setdefault(row.benchmark, {})[row.variant] = row
+
+    primary_mul_rows = [
+        pair["all-mul"]
+        for pair in primary_index.values()
+        if pair.get("all-mul") is not None and pair["all-mul"].status == "pass"
     ]
-    primary_mul_rows = [row for row in primary_rows if row.variant == "all-mul"]
-    primary_mule_rows = [row for row in primary_rows if row.variant == "all-mule"]
+    matched_primary_pairs = [
+        pair
+        for pair in primary_index.values()
+        if pair.get("all-mul") is not None
+        and pair.get("all-mule") is not None
+        and pair["all-mul"].status == "pass"
+        and pair["all-mule"].status == "pass"
+    ]
+    matched_primary_mul_rows = [pair["all-mul"] for pair in matched_primary_pairs]
+    matched_primary_mule_rows = [pair["all-mule"] for pair in matched_primary_pairs]
+    dynamic_primary_incomplete = sorted(
+        benchmark
+        for benchmark, pair in primary_index.items()
+        if not (
+            pair.get("all-mul") is not None
+            and pair.get("all-mule") is not None
+            and pair["all-mul"].status == "pass"
+            and pair["all-mule"].status == "pass"
+        )
+    )
 
     aggregate = {
         "executed_benchmarks": len({row.benchmark for row in primary_mul_rows}),
+        "matched_primary_benchmarks": len(matched_primary_pairs),
+        "dynamic_primary_incomplete_benchmarks": dynamic_primary_incomplete,
         "unsupported_benchmarks": unsupported_benchmarks,
         "static_plain_mul_total": sum(row.static_plain_mul or 0 for row in primary_mul_rows),
         "static_mulh_family_total": sum(row.static_mulh_family or 0 for row in primary_mul_rows),
         "static_integer_multiply_total": sum(row.static_integer_multiply_total or 0 for row in primary_mul_rows),
         "static_fmul_total": sum(row.static_fmul or 0 for row in primary_mul_rows),
         "static_fused_fmul_total": sum(row.static_fused_fmul or 0 for row in primary_mul_rows),
-        "dynamic_all_mul_retired_total_instructions": sum(row.retired_total_instructions or 0 for row in primary_mul_rows),
-        "dynamic_all_mul_retired_integer_multiply_total": sum(row.retired_integer_multiply_total or 0 for row in primary_mul_rows),
-        "dynamic_all_mule_retired_total_instructions": sum(row.retired_total_instructions or 0 for row in primary_mule_rows),
-        "dynamic_all_mule_retired_integer_multiply_total": sum(row.retired_integer_multiply_total or 0 for row in primary_mule_rows),
+        "dynamic_all_mul_retired_total_instructions": sum(row.retired_total_instructions or 0 for row in matched_primary_mul_rows),
+        "dynamic_all_mul_retired_integer_multiply_total": sum(row.retired_integer_multiply_total or 0 for row in matched_primary_mul_rows),
+        "dynamic_all_mule_retired_total_instructions": sum(row.retired_total_instructions or 0 for row in matched_primary_mule_rows),
+        "dynamic_all_mule_retired_integer_multiply_total": sum(row.retired_integer_multiply_total or 0 for row in matched_primary_mule_rows),
     }
     aggregate["dynamic_all_mul_retired_integer_multiply_ratio_ppm"] = integer_ratio_ppm(
         aggregate["dynamic_all_mul_retired_integer_multiply_total"],
