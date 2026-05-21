@@ -285,6 +285,18 @@ wire           cbm_busy_w;
 wire           writeback_cbm_valid_w;
 wire  [ 31:0]  writeback_cbm_value_w;
 wire  [  4:0]  writeback_cbm_rd_idx_w;
+wire           writeback_mula_valid_w;
+wire  [ 31:0]  writeback_mula_value_w;
+wire  [  4:0]  writeback_mula_rd_idx_w;
+wire           writeback_mulx_valid_w;
+wire  [ 31:0]  writeback_mulx_value_w;
+wire  [  4:0]  writeback_mulx_rd_idx_w;
+wire           writeback_mulb_valid_w;
+wire  [ 31:0]  writeback_mulb_value_w;
+wire  [  4:0]  writeback_mulb_rd_idx_w;
+wire           writeback_mulr_valid_w;
+wire  [ 31:0]  writeback_mulr_value_w;
+wire  [  4:0]  writeback_mulr_rd_idx_w;
 // --- END OF ADDED WIRES ---
 
 
@@ -573,11 +585,103 @@ u_mule
     ,.writeback_rd_idx_o(writeback_mule_rd_idx_w) // Goes to u_issue
 );
 
-// CBM disabled: tie off CBM signals
+biriscv_multiplier_array
+u_mul_array
+(
+    // Inputs
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.opcode_valid_i(cbm_opcode_valid_w)
+    ,.opcode_opcode_i(cbm_opcode_opcode_w)
+    ,.opcode_pc_i(cbm_opcode_pc_w)
+    ,.opcode_invalid_i(cbm_opcode_invalid_w)
+    ,.opcode_rd_idx_i(cbm_opcode_rd_idx_w)
+    ,.opcode_ra_idx_i(cbm_opcode_ra_idx_w)
+    ,.opcode_rb_idx_i(cbm_opcode_rb_idx_w)
+    ,.opcode_ra_operand_i(cbm_opcode_ra_operand_w)
+    ,.opcode_rb_operand_i(cbm_opcode_rb_operand_w)
+
+    // Outputs
+    ,.writeback_valid_o(writeback_mula_valid_w)
+    ,.writeback_value_o(writeback_mula_value_w)
+    ,.writeback_rd_idx_o(writeback_mula_rd_idx_w)
+);
+
+biriscv_multiplier_wallace
+u_mul_wallace
+(
+    // Inputs
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.opcode_valid_i(cbm_opcode_valid_w)
+    ,.opcode_opcode_i(cbm_opcode_opcode_w)
+    ,.opcode_pc_i(cbm_opcode_pc_w)
+    ,.opcode_invalid_i(cbm_opcode_invalid_w)
+    ,.opcode_rd_idx_i(cbm_opcode_rd_idx_w)
+    ,.opcode_ra_idx_i(cbm_opcode_ra_idx_w)
+    ,.opcode_rb_idx_i(cbm_opcode_rb_idx_w)
+    ,.opcode_ra_operand_i(cbm_opcode_ra_operand_w)
+    ,.opcode_rb_operand_i(cbm_opcode_rb_operand_w)
+
+    // Outputs
+    ,.writeback_valid_o(writeback_mulx_valid_w)
+    ,.writeback_value_o(writeback_mulx_value_w)
+    ,.writeback_rd_idx_o(writeback_mulx_rd_idx_w)
+);
+
+biriscv_multiplier_baugh_wooley
+u_mul_bw
+(
+    // Inputs
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.opcode_valid_i(cbm_opcode_valid_w)
+    ,.opcode_opcode_i(cbm_opcode_opcode_w)
+    ,.opcode_pc_i(cbm_opcode_pc_w)
+    ,.opcode_invalid_i(cbm_opcode_invalid_w)
+    ,.opcode_rd_idx_i(cbm_opcode_rd_idx_w)
+    ,.opcode_ra_idx_i(cbm_opcode_ra_idx_w)
+    ,.opcode_rb_idx_i(cbm_opcode_rb_idx_w)
+    ,.opcode_ra_operand_i(cbm_opcode_ra_operand_w)
+    ,.opcode_rb_operand_i(cbm_opcode_rb_operand_w)
+
+    // Outputs
+    ,.writeback_valid_o(writeback_mulb_valid_w)
+    ,.writeback_value_o(writeback_mulb_value_w)
+    ,.writeback_rd_idx_o(writeback_mulb_rd_idx_w)
+);
+
+biriscv_multiplier_redundant
+u_mulr
+(
+    // Inputs
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.opcode_valid_i(cbm_opcode_valid_w)
+    ,.opcode_opcode_i(cbm_opcode_opcode_w)
+    ,.opcode_pc_i(cbm_opcode_pc_w)
+    ,.opcode_invalid_i(cbm_opcode_invalid_w)
+    ,.opcode_rd_idx_i(cbm_opcode_rd_idx_w)
+    ,.opcode_ra_idx_i(cbm_opcode_ra_idx_w)
+    ,.opcode_rb_idx_i(cbm_opcode_rb_idx_w)
+    ,.opcode_ra_operand_i(cbm_opcode_ra_operand_w)
+    ,.opcode_rb_operand_i(cbm_opcode_rb_operand_w)
+
+    // Outputs
+    ,.writeback_valid_o(writeback_mulr_valid_w)
+    ,.writeback_value_o(writeback_mulr_value_w)
+    ,.writeback_rd_idx_o(writeback_mulr_rd_idx_w)
+);
+
+assign writeback_cbm_valid_w  = writeback_mula_valid_w | writeback_mulx_valid_w | writeback_mulb_valid_w | writeback_mulr_valid_w;
+assign writeback_cbm_value_w  = writeback_mulr_valid_w ? writeback_mulr_value_w :
+                                (writeback_mulb_valid_w ? writeback_mulb_value_w :
+                                (writeback_mulx_valid_w ? writeback_mulx_value_w : writeback_mula_value_w));
+assign writeback_cbm_rd_idx_w = writeback_mulr_valid_w ? writeback_mulr_rd_idx_w :
+                                (writeback_mulb_valid_w ? writeback_mulb_rd_idx_w :
+                                (writeback_mulx_valid_w ? writeback_mulx_rd_idx_w : writeback_mula_rd_idx_w));
+
 assign cbm_busy_w             = 1'b0;
-assign writeback_cbm_valid_w  = 1'b0;
-assign writeback_cbm_value_w  = 32'b0;
-assign writeback_cbm_rd_idx_w = 5'b0;
 
 
 biriscv_divider

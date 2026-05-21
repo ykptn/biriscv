@@ -105,6 +105,10 @@ wire invalid_w =    valid_i &&
                     (enable_muldiv_i && (opcode_i & `INST_REM_MASK) == `INST_REM)       ||
                     (enable_muldiv_i && (opcode_i & `INST_REMU_MASK) == `INST_REMU)    ||
                     (enable_muldiv_i && (opcode_i & `INST_MULE_MASK) == `INST_MULE)    ||
+                    (enable_muldiv_i && (opcode_i & `INST_MULA_MASK) == `INST_MULA)    ||
+                    (enable_muldiv_i && (opcode_i & `INST_MULX_MASK) == `INST_MULX)    ||
+                    (enable_muldiv_i && (opcode_i & `INST_MULR_MASK) == `INST_MULR)    ||
+                    (enable_muldiv_i && (opcode_i & `INST_MULB_MASK) == `INST_MULB)    ||
                     (enable_muldiv_i && (opcode_i & `INST_CBM_MASK)  == `INST_CBM));
 
 assign invalid_o = invalid_w;
@@ -147,6 +151,10 @@ assign rd_valid_o = ((opcode_i & `INST_JALR_MASK) == `INST_JALR)     ||
                     ((opcode_i & `INST_REM_MASK) == `INST_REM)       ||
                     ((opcode_i & `INST_REMU_MASK) == `INST_REMU)     ||
                     ((opcode_i & `INST_CBM_MASK) == `INST_CBM)       ||
+                    ((opcode_i & `INST_MULA_MASK) == `INST_MULA)     ||
+                    ((opcode_i & `INST_MULX_MASK) == `INST_MULX)     ||
+                    ((opcode_i & `INST_MULR_MASK) == `INST_MULR)     ||
+                    ((opcode_i & `INST_MULB_MASK) == `INST_MULB)     ||
                     ((opcode_i & `INST_CSRRW_MASK) == `INST_CSRRW)   ||
                     ((opcode_i & `INST_CSRRS_MASK) == `INST_CSRRS)   ||
                     ((opcode_i & `INST_CSRRC_MASK) == `INST_CSRRC)   ||
@@ -226,7 +234,12 @@ assign csr_o =      ((opcode_i & `INST_ECALL_MASK) == `INST_ECALL)            ||
 assign mule_o =     enable_muldiv_i &&
                     (((opcode_i & `INST_MULE_MASK) == `INST_MULE));
 
-// CBM disabled
-assign cbm_o  = 1'b0;            
+// Route custom aggressive multipliers into the existing CBM issue/writeback path.
+assign cbm_o  = enable_muldiv_i &&
+                (((opcode_i & `INST_MULA_MASK) == `INST_MULA) ||
+                 ((opcode_i & `INST_MULX_MASK) == `INST_MULX) ||
+                 ((opcode_i & `INST_MULR_MASK) == `INST_MULR) ||
+                 ((opcode_i & `INST_MULB_MASK) == `INST_MULB) ||
+                 ((opcode_i & `INST_CBM_MASK)  == `INST_CBM));
 
 endmodule

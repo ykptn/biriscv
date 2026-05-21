@@ -865,8 +865,8 @@ wire [31:0] issue_b_rb_value_w;
 wire [4:0]  pipe0_rd_wb_after_mule_w    = mule_writeback_safe_w ? writeback_mule_rd_idx_i : pipe0_rd_wb_w;
 wire [31:0] pipe0_result_wb_after_mule_w = mule_writeback_safe_w ? writeback_mule_value_i : pipe0_result_wb_w;
 
-wire [4:0]  pipe0_rd_wb_muxed_w    = cbm_writeback_safe_w ? writeback_cbm_rd_idx_i : pipe0_rd_wb_after_mule_w;
-wire [31:0] pipe0_result_wb_muxed_w = cbm_writeback_safe_w ? writeback_cbm_value_i   : pipe0_result_wb_after_mule_w;
+wire [4:0]  pipe0_rd_wb_muxed_w    = pipe0_rd_wb_after_mule_w;
+wire [31:0] pipe0_result_wb_muxed_w = pipe0_result_wb_after_mule_w;
 
 // Register file: 2W4R
 biriscv_regfile
@@ -929,14 +929,10 @@ begin
 
     // Bypass - MULE direct writeback (highest priority with safety checks)
     // Only bypass if: valid, non-zero register, and legitimate pending operation
-    if (cbm_writeback_safe_w && writeback_cbm_rd_idx_i == issue_a_ra_idx_w)
-        issue_a_ra_value_r = writeback_cbm_value_i;
-    else if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_a_ra_idx_w)
+    if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_a_ra_idx_w)
         issue_a_ra_value_r = writeback_mule_value_i;
 
-    if (cbm_writeback_safe_w && writeback_cbm_rd_idx_i == issue_a_rb_idx_w)
-        issue_a_rb_value_r = writeback_cbm_value_i;
-    else if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_a_rb_idx_w)
+    if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_a_rb_idx_w)
         issue_a_rb_value_r = writeback_mule_value_i;
 
     // Bypass - E2
@@ -1003,14 +999,10 @@ begin
 
     // Bypass - MULE direct writeback (highest priority with safety checks)
     // Only bypass if: valid, non-zero register, and legitimate pending operation
-    if (cbm_writeback_safe_w && writeback_cbm_rd_idx_i == issue_b_ra_idx_w)
-        issue_b_ra_value_r = writeback_cbm_value_i;
-    else if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_b_ra_idx_w)
+    if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_b_ra_idx_w)
         issue_b_ra_value_r = writeback_mule_value_i;
 
-    if (cbm_writeback_safe_w && writeback_cbm_rd_idx_i == issue_b_rb_idx_w)
-        issue_b_rb_value_r = writeback_cbm_value_i;
-    else if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_b_rb_idx_w)
+    if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_b_rb_idx_w)
         issue_b_rb_value_r = writeback_mule_value_i;
 
     // Bypass - E2

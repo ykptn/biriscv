@@ -390,7 +390,7 @@ begin
     result_wb_q     <= 32'b0;
     exception_wb_q  <= `EXCEPTION_W'b0;
 end
-else if (ctrl_e1_q[`PCINFO_MULE] && mule_complete_i && valid_e1_q)
+else if (ctrl_e1_q[`PCINFO_MULE] && mule_complete_i && valid_e1_q && ~valid_e2_q)
 begin
     valid_wb_q      <= 1'b1;
     ctrl_wb_q       <= ctrl_e1_q;
@@ -404,7 +404,7 @@ begin
     csr_wr_wb_q     <= 1'b0;
     csr_wdata_wb_q  <= 32'b0;
 end
-else if (ctrl_e1_q[`PCINFO_CBM] && cbm_complete_i && valid_e1_q)
+else if (ctrl_e1_q[`PCINFO_CBM] && cbm_complete_i && valid_e1_q && ~valid_e2_q)
 begin
     valid_wb_q      <= 1'b1;
     ctrl_wb_q       <= ctrl_e1_q;
