@@ -23,3 +23,25 @@ tb/tb_mul_shift_signed/waveform.vcd
 biriscv-testing-ready/
 tb/1000mul/1000parallel.vcd
 tb/tb_concept/waveform.vcd
+
+# Simulation/generated files
+tb/tb_muls/build/output.out
+tb/tb_muls/waveform.vcd
+tb/tb_mula/build/output.out
+tb/tb_mula/waveform.vcd
+tb/tb_mulb/build/output.out
+tb/tb_mulb/waveform.vcd
+tb/tb_mulx/build/output.out
+tb/tb_mulx/waveform.vcd
+tb/tb_mulr/build/output.out
+tb/tb_mulr/waveform.vcd
+*.vcd
+tb/tb_mul_compare/test_mul_compare.elf
+tb/tb_mul_compare/test_mul_compare.o
+tb/tb_mul_compare/build/tcm.bin
+tb/tb_mul_compare4/build/
+tb/tb_mul_compare4/test_mul_compare4.elf
+tb/tb_mul_compare4/test_mul_compare4.o
+tb/tb_mul_compare4/*.vcd
+tb/tb_mul_compare4/vcds/
+tb/mulvsmule/waveform.vcd
