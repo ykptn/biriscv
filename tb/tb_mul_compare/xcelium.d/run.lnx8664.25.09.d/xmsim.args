@@ -1,0 +1,27 @@
+//
+// File created by:  xrun
+// Do not modify this file
+//
++access+r
++define+TRACE=1
++incdir+/home/ykaraagac/biriscv/src/core
+-LICQUEUE
+-INPUT
+"@run; exit"
+-MESSAGES
++EMGRLOG
+/home/ykaraagac/cadence-bitirme/Flows/NanGate45/biriscv_2mul_vs_hybrid/scripts/cadence/logs/xrun_core_hybrid.log
+-XLSTIME
+1774346631
+-XLKEEP
+-XLMODE
+./xcelium.d/run.lnx8664.25.09.d
+-RUNMODE
+-CDSLIB
+./xcelium.d/run.lnx8664.25.09.d/cds.lib
+-HDLVAR
+./xcelium.d/run.lnx8664.25.09.d/hdl.var
+-XLNAME
+xrun
+-XLVERSION
+"TOOL:	xrun(64)	25.09-s003"

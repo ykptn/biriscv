@@ -142,12 +142,14 @@ assign mult_b_in_w = mult_active_w ?
                      ((state_q == MULE_STATE_CALC1) ? b_q[31:16] : b_q[15:0]) :
                      16'b0;
 
-// Combinational final product from partials
-wire [31:0] result_w = p0_q + (p1_q << 16) + (p2_q << 16);
+// Only enable the recombine adder while the final result is being presented.
+wire        result_active_w = (state_q == MULE_STATE_DONE) || valid_r;
+wire [31:0] result_pre_w    = p0_q + (p1_q << 16) + (p2_q << 16);
+wire [31:0] result_w        = result_active_w ? result_pre_w : 32'b0;
 
 // Outputs - direct from valid_r (removed extra pipeline stage for 1 cycle faster + power savings)
 assign writeback_valid_o = valid_r;
-assign writeback_value_o = result_w;
-assign writeback_rd_idx_o = rd_idx_q;
+assign writeback_value_o = valid_r ? result_w : 32'b0;
+assign writeback_rd_idx_o = valid_r ? rd_idx_q : 5'b0;
 
 endmodule

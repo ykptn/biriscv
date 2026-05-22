@@ -1,0 +1,19 @@
+//
+// File created by:  xrun
+// Do not modify this file
+//
+-64bit
+-sv
+-licqueue
+-timescale
+1ns/1ps
++access+r
++define+TRACE=1
+-f
+/home/ykaraagac/cadence-bitirme/Flows/NanGate45/biriscv_2mul_vs_hybrid/scripts/cadence/filelists/core_hybrid_tb.f
+-top
+tb_mul_compare
+-input
+"@run; exit"
+-l
+/home/ykaraagac/cadence-bitirme/Flows/NanGate45/biriscv_2mul_vs_hybrid/scripts/cadence/logs/xrun_core_hybrid.log

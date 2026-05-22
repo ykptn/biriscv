@@ -21,6 +21,10 @@ DEFAULT_ANALYSIS_DIR = WORKSPACE_ROOT / "riscv_dependency_analysis"
 BUILD_DIR = TB_DIR / "build"
 RESULTS_DIR = TB_DIR / "sweep_results"
 TEXT_BASE = 0x80000000
+XRUN_CANDIDATES = [
+    Path("/eda/cadence/XCELIUM2509/tools.lnx86/inca/bin/64bit/xrun"),
+    Path("/eda/cadence/XCELIUM2509/tools.lnx86/inca/bin/xrun"),
+]
 SPECIAL_SMALL_N = {
     "matmul.c": 16,
     "conv2d.c": 16,
@@ -83,21 +87,58 @@ class CommandError(RuntimeError):
     pass
 
 
-def run_command(args: list[str], cwd: Path) -> str:
-    result = subprocess.run(
+def resolve_executable(name: str, candidates: list[Path]) -> str:
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+
+    resolved = shutil.which(name)
+    if resolved:
+        return resolved
+
+    raise CommandError(f"required executable not found: {name}")
+
+
+def run_command(args: list[str], cwd: Path, live: bool = False) -> str:
+    if not live:
+        result = subprocess.run(
+            args,
+            cwd=str(cwd),
+            text=True,
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            details = result.stdout
+            if result.stderr:
+                details = f"{details}\n{result.stderr}".strip()
+            raise CommandError(
+                f"command failed ({result.returncode}): {' '.join(args)}\n{details}".strip()
+            )
+        return result.stdout
+
+    process = subprocess.Popen(
         args,
         cwd=str(cwd),
         text=True,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        bufsize=1,
     )
-    if result.returncode != 0:
-        details = result.stdout
-        if result.stderr:
-            details = f"{details}\n{result.stderr}".strip()
+    assert process.stdout is not None
+
+    output_chunks: list[str] = []
+    for line in process.stdout:
+        sys.stdout.write(line)
+        sys.stdout.flush()
+        output_chunks.append(line)
+
+    returncode = process.wait()
+    output = "".join(output_chunks)
+    if returncode != 0:
         raise CommandError(
-            f"command failed ({result.returncode}): {' '.join(args)}\n{details}".strip()
+            f"command failed ({returncode}): {' '.join(args)}\n{output}".strip()
         )
-    return result.stdout
+    return output
 
 
 def parse_macro_value(source_text: str, macro_name: str) -> Optional[int]:
@@ -299,10 +340,43 @@ def patch_mul_to_mule(binary_path: Path, records: Iterable[tuple[int, int, str]]
     return patch_count
 
 
+def xrun_source_paths() -> list[Path]:
+    core_dir = BIRISCV_ROOT / "src" / "core"
+    tb_mul_dir = BIRISCV_ROOT / "tb" / "tb_mul"
+
+    return sorted(core_dir.glob("*.v")) + [
+        TB_DIR / "tb_matmul_absorbtion.v",
+        tb_mul_dir / "tcm_mem.v",
+        tb_mul_dir / "tcm_mem_ram.v",
+    ]
+
+
+def xrun_base_args() -> list[str]:
+    xrun = resolve_executable("xrun", XRUN_CANDIDATES)
+    core_dir = BIRISCV_ROOT / "src" / "core"
+    tb_mul_dir = BIRISCV_ROOT / "tb" / "tb_mul"
+
+    return [
+        xrun,
+        "-64bit",
+        "-sv",
+        "-licqueue",
+        "-timescale",
+        "1ns/1ps",
+        "+access+r",
+        "+define+TRACE=0",
+        "+define+verilog_sim",
+        f"+incdir+{core_dir}",
+        f"+incdir+{TB_DIR}",
+        f"+incdir+{tb_mul_dir}",
+        "-xmlibdirname",
+        str(BUILD_DIR / "xcelium.d"),
+    ]
+
+
 def build_verilog() -> None:
     BUILD_DIR.mkdir(parents=True, exist_ok=True)
-    run_command(["make", "clean"], TB_DIR)
-    run_command(["make", "BUILD_DIR=build", "EXE=output.out", "build/output.out", "TRACE=0"], TB_DIR)
+    resolve_executable("xrun", XRUN_CANDIDATES)
 
 
 def parse_simulation_output(output_text: str) -> dict[str, int]:
@@ -316,7 +390,19 @@ def parse_simulation_output(output_text: str) -> dict[str, int]:
 
 def run_simulation(binary_path: Path) -> tuple[str, dict[str, int]]:
     shutil.copyfile(binary_path, BUILD_DIR / "tcm.bin")
-    output_text = run_command(["vvp", str(BUILD_DIR / "output.out")], TB_DIR)
+    print(f"Streaming Xcelium output for {binary_path.name} ...")
+    output_text = run_command(
+        xrun_base_args()
+        + [str(path) for path in xrun_source_paths()]
+        + [
+            "-top",
+            "tb_matmul_absorbtion",
+            "-input",
+            "@run; exit",
+        ],
+        TB_DIR,
+        live=True,
+    )
     metrics = parse_simulation_output(output_text)
     return output_text, metrics
 

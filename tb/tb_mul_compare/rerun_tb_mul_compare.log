@@ -1,0 +1,15 @@
+xrun(64): 25.09-s003: (c) Copyright 1995-2026 Cadence Design Systems, Inc.
+TOOL:	xrun(64)	25.09-s003: Started on May 08, 2026 at 09:48:08 UTC
+xrun
+	-R
+	-xmlibdirname xcelium.d
+	-input "@run; exit"
+	-l rerun_tb_mul_compare.log
+Loading snapshot worklib.tb_mul_compare:v .................... Done
+xcelium> source /eda/cadence/XCELIUM2509/tools/xcelium/files/xmsimrc
+xcelium> run; exit
+Starting MUL vs MULE compare testbench
+xmsim: *W,PRUASZ: Unpacked array at "tb_mul_compare.mem" of 131073 elements exceeds limit of 16384 - not probed
+ Use 'probe -create -unpacked 131073 tb_mul_compare.mem' or 'setenv SHM_UNPACKED_LIMIT 131073' to adjust limit.
+Loaded 512 bytes from tcm.bin
+TOOL:	xrun(64)	25.09-s003: Exiting on May 08, 2026 at 09:51:26 UTC  (total: 00:03:18)

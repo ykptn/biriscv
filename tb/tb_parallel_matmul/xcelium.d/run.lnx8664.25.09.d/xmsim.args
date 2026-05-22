@@ -1,0 +1,29 @@
+//
+// File created by:  xrun
+// Do not modify this file
+//
++access+r
++incdir+../../src/core
++incdir+../../src/tcm
++define+TRACE=0
++define+verilog_sim
+-LICQUEUE
+-INPUT
+"@run; exit"
+-MESSAGES
++EMGRLOG
+xrun.log
+-XLSTIME
+1774945117
+-XLKEEP
+-XLMODE
+./xcelium.d/run.lnx8664.25.09.d
+-RUNMODE
+-CDSLIB
+./xcelium.d/run.lnx8664.25.09.d/cds.lib
+-HDLVAR
+./xcelium.d/run.lnx8664.25.09.d/hdl.var
+-XLNAME
+xrun
+-XLVERSION
+"TOOL:	xrun(64)	25.09-s003"

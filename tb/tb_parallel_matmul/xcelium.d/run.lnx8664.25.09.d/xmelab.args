@@ -1,0 +1,28 @@
+//
+// File created by:  xrun
+// Do not modify this file
+//
++access+r
++incdir+../../src/core
++incdir+../../src/tcm
++define+TRACE=0
++define+verilog_sim
+-LICQUEUE
+-timescale
+1ns/1ps
+-ACCESS
++r
+-no_analogsolver
+-MESSAGES
+tb_parallel_matmul
+-XLMODE
+./xcelium.d/run.lnx8664.25.09.d
+-RUNMODE
+-CDSLIB
+./xcelium.d/run.lnx8664.25.09.d/cds.lib
+-HDLVAR
+./xcelium.d/run.lnx8664.25.09.d/hdl.var
+-WORK
+worklib
+-IRUNHASTOP
+-HASXLMODE

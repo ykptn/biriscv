@@ -1,0 +1,9 @@
+//
+// File created by:  xrun
+// Do not modify this file
+//
+-sv
+-DEFINE
+TRACE=1
+-INCDIR
+/home/ykaraagac/biriscv/src/core

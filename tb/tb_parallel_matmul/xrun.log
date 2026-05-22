@@ -1,0 +1,254 @@
+xrun(64): 25.09-s003: (c) Copyright 1995-2026 Cadence Design Systems, Inc.
+TOOL:	xrun(64)	25.09-s003: Started on Mar 31, 2026 at 08:18:37 UTC
+xrun
+	-64bit
+	-sv
+	-licqueue
+	-timescale 1ns/1ps
+	+access+r
+	+incdir+../../src/core
+	+incdir+../../src/tcm
+	+define+TRACE=0
+	+define+verilog_sim
+	../../src/core/biriscv_alu.v
+	../../src/core/biriscv_csr.v
+	../../src/core/biriscv_csr_regfile.v
+	../../src/core/biriscv_decode.v
+	../../src/core/biriscv_decoder.v
+	../../src/core/biriscv_defs.v
+	../../src/core/biriscv_divider.v
+	../../src/core/biriscv_exec.v
+	../../src/core/biriscv_fetch.v
+	../../src/core/biriscv_frontend.v
+	../../src/core/biriscv_issue.v
+	../../src/core/biriscv_lsu.v
+	../../src/core/biriscv_mmu.v
+	../../src/core/biriscv_multiplier.v
+	../../src/core/biriscv_multiplier_efficient.v
+	../../src/core/biriscv_npc.v
+	../../src/core/biriscv_pipe_ctrl.v
+	../../src/core/biriscv_regfile.v
+	../../src/core/biriscv_trace_sim.v
+	../../src/core/biriscv_xilinx_2r1w.v
+	../../src/core/riscv_core.v
+	../../src/tcm/dport_axi.v
+	../../src/tcm/dport_mux.v
+	../../src/tcm/tcm_mem.v
+	../../src/tcm/tcm_mem_pmem.v
+	../../src/tcm/tcm_mem_ram.v
+	tb_parallel_matmul.v
+	-top tb_parallel_matmul
+	-input "@run; exit"
+file: ../../src/core/biriscv_alu.v
+	module worklib.biriscv_alu:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_csr.v
+	module worklib.biriscv_csr:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_csr_regfile.v
+	module worklib.biriscv_csr_regfile:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_decode.v
+	module worklib.biriscv_decode:v
+		errors: 0, warnings: 0
+	module worklib.fetch_fifo:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_decoder.v
+	module worklib.biriscv_decoder:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_defs.v
+file: ../../src/core/biriscv_divider.v
+	module worklib.biriscv_divider:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_exec.v
+	module worklib.biriscv_exec:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_fetch.v
+	module worklib.biriscv_fetch:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_frontend.v
+	module worklib.biriscv_frontend:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_issue.v
+	module worklib.biriscv_issue:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_lsu.v
+	module worklib.biriscv_lsu:v
+		errors: 0, warnings: 0
+	module worklib.biriscv_lsu_fifo:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_mmu.v
+	module worklib.biriscv_mmu:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_multiplier.v
+	module worklib.biriscv_multiplier:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_multiplier_efficient.v
+	module worklib.biriscv_multiplier_efficient:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_npc.v
+	module worklib.biriscv_npc:v
+		errors: 0, warnings: 0
+	module worklib.biriscv_npc_lfsr:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_pipe_ctrl.v
+	module worklib.biriscv_pipe_ctrl:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_regfile.v
+	module worklib.biriscv_regfile:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_trace_sim.v
+	module worklib.biriscv_trace_sim:v
+		errors: 0, warnings: 0
+file: ../../src/core/biriscv_xilinx_2r1w.v
+	module worklib.biriscv_xilinx_2r1w:v
+		errors: 0, warnings: 0
+file: ../../src/core/riscv_core.v
+	module worklib.riscv_core:v
+		errors: 0, warnings: 0
+file: ../../src/tcm/dport_axi.v
+	module worklib.dport_axi:v
+		errors: 0, warnings: 0
+	module worklib.dport_axi_fifo:v
+		errors: 0, warnings: 0
+file: ../../src/tcm/dport_mux.v
+	module worklib.dport_mux:v
+		errors: 0, warnings: 0
+file: ../../src/tcm/tcm_mem.v
+	module worklib.tcm_mem:v
+		errors: 0, warnings: 0
+file: ../../src/tcm/tcm_mem_pmem.v
+	module worklib.tcm_mem_pmem:v
+		errors: 0, warnings: 0
+	module worklib.tcm_mem_pmem_fifo2:v
+		errors: 0, warnings: 0
+file: ../../src/tcm/tcm_mem_ram.v
+	module worklib.tcm_mem_ram:v
+		errors: 0, warnings: 0
+file: tb_parallel_matmul.v
+	module worklib.tb_parallel_matmul:v
+		errors: 0, warnings: 0
+xmvlog: *W,SPDUSD: Include directory ../../src/tcm given but not used.
+	Total errors/warnings found outside modules and primitives:
+		errors: 0, warnings: 1
+	Elaborating the design hierarchy:
+		Caching library 'worklib' ....... Done
+u_mem
+    |
+xmelab: *W,CUVWSP (./tb_parallel_matmul.v,128|4): 11 output ports were not connected:
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,71): axi_awready_o
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,72): axi_wready_o
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,73): axi_bvalid_o
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,74): axi_bresp_o
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,75): axi_bid_o
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,76): axi_arready_o
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,77): axi_rvalid_o
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,78): axi_rdata_o
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,79): axi_rresp_o
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,80): axi_rid_o
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,81): axi_rlast_o
+
+u_mem
+    |
+xmelab: *W,CUVWSI (./tb_parallel_matmul.v,128|4): 16 input ports were not connected:
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,44): axi_awvalid_i
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,45): axi_awaddr_i
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,46): axi_awid_i
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,47): axi_awlen_i
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,48): axi_awburst_i
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,49): axi_wvalid_i
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,50): axi_wdata_i
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,51): axi_wstrb_i
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,52): axi_wlast_i
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,53): axi_bready_i
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,54): axi_arvalid_i
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,55): axi_araddr_i
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,56): axi_arid_i
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,57): axi_arlen_i
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,58): axi_arburst_i
+xmelab: (/home/ykaraagac/biriscv/src/tcm/tcm_mem.v,59): axi_rready_i
+
+	Top level design units:
+		worklib.tb_parallel_matmul:v (module)
+	Building instance overlay tables: .................... Done
+	Generating native compiled code:
+		worklib.tcm_mem_pmem_fifo2:v <0x31757b55>
+			streams:   7, words:  2935
+		worklib.tcm_mem_pmem_fifo2:v <0x2167a441>
+			streams:   7, words:  2962
+		worklib.tcm_mem_pmem:v <0x0b36b3aa>
+			streams:  27, words: 14627
+		worklib.tcm_mem:v <0x357c3ca0>
+			streams:  19, words:  5731
+		worklib.biriscv_alu:v <0x66a7eb4d>
+			streams:   2, words:  6022
+		worklib.biriscv_exec:v <0x062fd4d5>
+			streams:  14, words: 25274
+		worklib.biriscv_regfile:v <0x0e4fdfac>
+			streams:  97, words: 50716
+		worklib.biriscv_pipe_ctrl:v <0x2ab156eb>
+			streams:  65, words: 38889
+		worklib.biriscv_issue:v <0x4dd86bef>
+			streams:  98, words: 49782
+		worklib.biriscv_divider:v <0x266711bd>
+			streams:  16, words:  9353
+		worklib.biriscv_multiplier_efficient:v <0x0c1ca7d8>
+			streams:  14, words:  5744
+		worklib.biriscv_multiplier:v <0x45fe3eed>
+			streams:  13, words:  6254
+		worklib.biriscv_csr_regfile:v <0x6b6b4a73>
+			streams:  16, words: 32385
+		worklib.biriscv_csr:v <0x5897854b>
+			streams:  39, words: 13820
+		worklib.biriscv_lsu_fifo:v <0x59fc4f18>
+			streams:   8, words:  4317
+		worklib.biriscv_lsu:v <0x4686aec3>
+			streams:  31, words: 26828
+		worklib.biriscv_mmu:v <0x3b22838d>
+			streams:   9, words:  1637
+		worklib.biriscv_fetch:v <0x0edf2760>
+			streams:  36, words: 12969
+		worklib.biriscv_decoder:v <0x71d23954>
+			streams:   8, words: 14482
+		worklib.fetch_fifo:v <0x250d269f>
+			streams:  22, words: 12653
+		worklib.biriscv_decode:v <0x521aae87>
+			streams:   4, words:   785
+		worklib.biriscv_npc_lfsr:v <0x3195b771>
+			streams:   3, words:   826
+		worklib.biriscv_npc:v <0x60782148>
+			streams:  60, words: 34049
+		worklib.biriscv_frontend:v <0x3857de9b>
+			streams:   0, words:     0
+		worklib.riscv_core:v <0x3fd421c9>
+			streams:   1, words:   535
+		worklib.tb_parallel_matmul:v <0x19cb6c78>
+			streams:   7, words:  8349
+		worklib.tcm_mem_ram:v <0x3276be13>
+			streams:  20, words: 15888
+	Building instance specific data structures.
+	Loading native compiled code:     .................... Done
+	Design hierarchy summary:
+		                 Instances  Unique
+		Modules:                31      26
+		Registers:             436     388
+		Scalar wires:          307       -
+		Expanded wires:         40       3
+		Vectored wires:        262       -
+		Always blocks:         106     116
+		Initial blocks:          2       2
+		Cont. assignments:     248     530
+		Pseudo assignments:     21       -
+		Sparse arrays:           1       -
+		Process Clocks:         61       2
+		Simulation timescale:  1ps
+	Writing initial simulation snapshot: worklib.tb_parallel_matmul:v
+Loading snapshot worklib.tb_parallel_matmul:v .................... Done
+xcelium> source /eda/cadence/XCELIUM2509/tools/xcelium/files/xmsimrc
+xcelium> run; exit
+Starting Parallel MatMul Benchmark (Hybrid MUL+MULE)
+Loaded 944 bytes from tcm.bin
+
+*** PARALLEL MATMUL PASS (Hybrid) ***
+Total cycles: 13758
+TOOL:	xrun(64)	25.09-s003: Exiting on Mar 31, 2026 at 08:18:41 UTC  (total: 00:00:04)
