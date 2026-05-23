@@ -108,6 +108,7 @@ wire invalid_w =    valid_i &&
                     (enable_muldiv_i && (opcode_i & `INST_MULA_MASK) == `INST_MULA)    ||
                     (enable_muldiv_i && (opcode_i & `INST_MULX_MASK) == `INST_MULX)    ||
                     (enable_muldiv_i && (opcode_i & `INST_MULR_MASK) == `INST_MULR)    ||
+                    (enable_muldiv_i && (opcode_i & `INST_MULP_MASK) == `INST_MULP)    ||
                     (enable_muldiv_i && (opcode_i & `INST_MULB_MASK) == `INST_MULB)    ||
                     (enable_muldiv_i && (opcode_i & `INST_CBM_MASK)  == `INST_CBM));
 
@@ -154,6 +155,7 @@ assign rd_valid_o = ((opcode_i & `INST_JALR_MASK) == `INST_JALR)     ||
                     ((opcode_i & `INST_MULA_MASK) == `INST_MULA)     ||
                     ((opcode_i & `INST_MULX_MASK) == `INST_MULX)     ||
                     ((opcode_i & `INST_MULR_MASK) == `INST_MULR)     ||
+                    ((opcode_i & `INST_MULP_MASK) == `INST_MULP)     ||
                     ((opcode_i & `INST_MULB_MASK) == `INST_MULB)     ||
                     ((opcode_i & `INST_CSRRW_MASK) == `INST_CSRRW)   ||
                     ((opcode_i & `INST_CSRRS_MASK) == `INST_CSRRS)   ||
@@ -239,6 +241,7 @@ assign cbm_o  = enable_muldiv_i &&
                 (((opcode_i & `INST_MULA_MASK) == `INST_MULA) ||
                  ((opcode_i & `INST_MULX_MASK) == `INST_MULX) ||
                  ((opcode_i & `INST_MULR_MASK) == `INST_MULR) ||
+                 ((opcode_i & `INST_MULP_MASK) == `INST_MULP) ||
                  ((opcode_i & `INST_MULB_MASK) == `INST_MULB) ||
                  ((opcode_i & `INST_CBM_MASK)  == `INST_CBM));
 

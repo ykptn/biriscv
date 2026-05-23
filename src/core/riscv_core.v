@@ -297,6 +297,9 @@ wire  [  4:0]  writeback_mulb_rd_idx_w;
 wire           writeback_mulr_valid_w;
 wire  [ 31:0]  writeback_mulr_value_w;
 wire  [  4:0]  writeback_mulr_rd_idx_w;
+wire           writeback_mulp_valid_w;
+wire  [ 31:0]  writeback_mulp_value_w;
+wire  [  4:0]  writeback_mulp_rd_idx_w;
 // --- END OF ADDED WIRES ---
 
 
@@ -673,13 +676,37 @@ u_mulr
     ,.writeback_rd_idx_o(writeback_mulr_rd_idx_w)
 );
 
-assign writeback_cbm_valid_w  = writeback_mula_valid_w | writeback_mulx_valid_w | writeback_mulb_valid_w | writeback_mulr_valid_w;
-assign writeback_cbm_value_w  = writeback_mulr_valid_w ? writeback_mulr_value_w :
+biriscv_multiplier_braun
+u_mulp
+(
+    // Inputs
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.opcode_valid_i(cbm_opcode_valid_w)
+    ,.opcode_opcode_i(cbm_opcode_opcode_w)
+    ,.opcode_pc_i(cbm_opcode_pc_w)
+    ,.opcode_invalid_i(cbm_opcode_invalid_w)
+    ,.opcode_rd_idx_i(cbm_opcode_rd_idx_w)
+    ,.opcode_ra_idx_i(cbm_opcode_ra_idx_w)
+    ,.opcode_rb_idx_i(cbm_opcode_rb_idx_w)
+    ,.opcode_ra_operand_i(cbm_opcode_ra_operand_w)
+    ,.opcode_rb_operand_i(cbm_opcode_rb_operand_w)
+
+    // Outputs
+    ,.writeback_valid_o(writeback_mulp_valid_w)
+    ,.writeback_value_o(writeback_mulp_value_w)
+    ,.writeback_rd_idx_o(writeback_mulp_rd_idx_w)
+);
+
+assign writeback_cbm_valid_w  = writeback_mula_valid_w | writeback_mulx_valid_w | writeback_mulb_valid_w | writeback_mulr_valid_w | writeback_mulp_valid_w;
+assign writeback_cbm_value_w  = writeback_mulp_valid_w ? writeback_mulp_value_w :
+                                (writeback_mulr_valid_w ? writeback_mulr_value_w :
                                 (writeback_mulb_valid_w ? writeback_mulb_value_w :
-                                (writeback_mulx_valid_w ? writeback_mulx_value_w : writeback_mula_value_w));
-assign writeback_cbm_rd_idx_w = writeback_mulr_valid_w ? writeback_mulr_rd_idx_w :
+                                (writeback_mulx_valid_w ? writeback_mulx_value_w : writeback_mula_value_w)));
+assign writeback_cbm_rd_idx_w = writeback_mulp_valid_w ? writeback_mulp_rd_idx_w :
+                                (writeback_mulr_valid_w ? writeback_mulr_rd_idx_w :
                                 (writeback_mulb_valid_w ? writeback_mulb_rd_idx_w :
-                                (writeback_mulx_valid_w ? writeback_mulx_rd_idx_w : writeback_mula_rd_idx_w));
+                                (writeback_mulx_valid_w ? writeback_mulx_rd_idx_w : writeback_mula_rd_idx_w)));
 
 assign cbm_busy_w             = 1'b0;
 
