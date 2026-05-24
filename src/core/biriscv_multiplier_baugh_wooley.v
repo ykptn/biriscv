@@ -33,8 +33,8 @@ module biriscv_multiplier_baugh_wooley
     ,output [  4:0]  writeback_rd_idx_o
 );
 
-// This unit is configured as unsigned full partial-product 32x32
-// with a Kogge-Stone final adder (aggressive power profile).
+// Signed full partial-product multiplier with Baugh-Wooley compatible
+// sign correction and a Kogge-Stone style final adder.
 wire inst_mulb_w = ((opcode_opcode_i & `INST_MULB_MASK) == `INST_MULB);
 
 wire [63:0] pp_w [0:31];
@@ -67,15 +67,32 @@ generate
     end
 endgenerate
 
-wire [63:0] final_product_w;
-wire        final_carry_unused_w;
+wire [63:0] unsigned_product_w;
+wire        unsigned_carry_unused_w;
 biriscv_kogge_stone_64
-u_final_ks
+u_unsigned_ks
 (
     .a_i(row_sum_w[31]),
     .b_i(row_carry_w[31]),
-    .sum_o(final_product_w),
-    .carry_o(final_carry_unused_w)
+    .sum_o(unsigned_product_w),
+    .carry_o(unsigned_carry_unused_w)
+);
+
+// Baugh-Wooley equivalent two's-complement correction:
+// P_signed = P_unsigned - ((a_sign ? b : 0) << 32) - ((b_sign ? a : 0) << 32)
+wire [63:0] a_term_w = opcode_ra_operand_i[31] ? {opcode_rb_operand_i, 32'b0} : 64'b0;
+wire [63:0] b_term_w = opcode_rb_operand_i[31] ? {opcode_ra_operand_i, 32'b0} : 64'b0;
+wire [63:0] corr_w = ~(a_term_w + b_term_w) + 64'd1;
+
+wire [63:0] signed_product_w;
+wire        signed_carry_unused_w;
+biriscv_kogge_stone_64
+u_signed_ks
+(
+    .a_i(unsigned_product_w),
+    .b_i(corr_w),
+    .sum_o(signed_product_w),
+    .carry_o(signed_carry_unused_w)
 );
 
 reg         valid_q;
@@ -95,7 +112,7 @@ begin
 
     if (opcode_valid_i && inst_mulb_w)
     begin
-        result_q <= final_product_w[31:0];
+        result_q <= signed_product_w[31:0];
         rd_idx_q <= opcode_rd_idx_i;
     end
     else

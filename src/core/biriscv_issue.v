@@ -138,6 +138,13 @@ module biriscv_issue
     ,output          mul_opcode_valid_o
     ,output          div_opcode_valid_o
     ,output          mule_opcode_valid_o
+    ,output          mula_opcode_valid_o
+    ,output          mulx_opcode_valid_o
+    ,output          mulb_opcode_valid_o
+    ,output          mulr_opcode_valid_o
+    ,output          mulp_opcode_valid_o
+    ,output          mulc_opcode_valid_o
+    ,output          cbm_inst_opcode_valid_o
     ,output [ 31:0]  opcode0_opcode_o
     ,output [ 31:0]  opcode0_pc_o
     ,output          opcode0_invalid_o
@@ -171,7 +178,6 @@ module biriscv_issue
     ,output [ 31:0]  mul_opcode_ra_operand_o
     ,output [ 31:0]  mul_opcode_rb_operand_o
     ,output [ 31:0]  csr_opcode_opcode_o
-    // --- ADD ALL THESE OUTPUTS ---
     ,output [ 31:0]  mule_opcode_opcode_o
     ,output [ 31:0]  mule_opcode_pc_o
     ,output          mule_opcode_invalid_o
@@ -180,6 +186,54 @@ module biriscv_issue
     ,output [  4:0]  mule_opcode_rb_idx_o
     ,output [ 31:0]  mule_opcode_ra_operand_o
     ,output [ 31:0]  mule_opcode_rb_operand_o
+    ,output [ 31:0]  mula_opcode_opcode_o
+    ,output [ 31:0]  mula_opcode_pc_o
+    ,output          mula_opcode_invalid_o
+    ,output [  4:0]  mula_opcode_rd_idx_o
+    ,output [  4:0]  mula_opcode_ra_idx_o
+    ,output [  4:0]  mula_opcode_rb_idx_o
+    ,output [ 31:0]  mula_opcode_ra_operand_o
+    ,output [ 31:0]  mula_opcode_rb_operand_o
+    ,output [ 31:0]  mulx_opcode_opcode_o
+    ,output [ 31:0]  mulx_opcode_pc_o
+    ,output          mulx_opcode_invalid_o
+    ,output [  4:0]  mulx_opcode_rd_idx_o
+    ,output [  4:0]  mulx_opcode_ra_idx_o
+    ,output [  4:0]  mulx_opcode_rb_idx_o
+    ,output [ 31:0]  mulx_opcode_ra_operand_o
+    ,output [ 31:0]  mulx_opcode_rb_operand_o
+    ,output [ 31:0]  mulb_opcode_opcode_o
+    ,output [ 31:0]  mulb_opcode_pc_o
+    ,output          mulb_opcode_invalid_o
+    ,output [  4:0]  mulb_opcode_rd_idx_o
+    ,output [  4:0]  mulb_opcode_ra_idx_o
+    ,output [  4:0]  mulb_opcode_rb_idx_o
+    ,output [ 31:0]  mulb_opcode_ra_operand_o
+    ,output [ 31:0]  mulb_opcode_rb_operand_o
+    ,output [ 31:0]  mulr_opcode_opcode_o
+    ,output [ 31:0]  mulr_opcode_pc_o
+    ,output          mulr_opcode_invalid_o
+    ,output [  4:0]  mulr_opcode_rd_idx_o
+    ,output [  4:0]  mulr_opcode_ra_idx_o
+    ,output [  4:0]  mulr_opcode_rb_idx_o
+    ,output [ 31:0]  mulr_opcode_ra_operand_o
+    ,output [ 31:0]  mulr_opcode_rb_operand_o
+    ,output [ 31:0]  mulp_opcode_opcode_o
+    ,output [ 31:0]  mulp_opcode_pc_o
+    ,output          mulp_opcode_invalid_o
+    ,output [  4:0]  mulp_opcode_rd_idx_o
+    ,output [  4:0]  mulp_opcode_ra_idx_o
+    ,output [  4:0]  mulp_opcode_rb_idx_o
+    ,output [ 31:0]  mulp_opcode_ra_operand_o
+    ,output [ 31:0]  mulp_opcode_rb_operand_o
+    ,output [ 31:0]  mulc_opcode_opcode_o
+    ,output [ 31:0]  mulc_opcode_pc_o
+    ,output          mulc_opcode_invalid_o
+    ,output [  4:0]  mulc_opcode_rd_idx_o
+    ,output [  4:0]  mulc_opcode_ra_idx_o
+    ,output [  4:0]  mulc_opcode_rb_idx_o
+    ,output [ 31:0]  mulc_opcode_ra_operand_o
+    ,output [ 31:0]  mulc_opcode_rb_operand_o
     ,output          cbm_opcode_valid_o
     ,output [ 31:0]  cbm_opcode_opcode_o
     ,output [ 31:0]  cbm_opcode_pc_o
@@ -189,7 +243,6 @@ module biriscv_issue
     ,output [  4:0]  cbm_opcode_rb_idx_o
     ,output [ 31:0]  cbm_opcode_ra_operand_o
     ,output [ 31:0]  cbm_opcode_rb_operand_o
-    // --- END OF ADDED OUTPUTS ---
     ,output [ 31:0]  csr_opcode_pc_o
     ,output          csr_opcode_invalid_o
     ,output [  4:0]  csr_opcode_rd_idx_o
@@ -345,6 +398,13 @@ wire       issue_a_mul_w      = (slot0_valid_r ? fetch0_instr_mul_i      : fetch
 wire       issue_a_div_w      = (slot0_valid_r ? fetch0_instr_div_i      : fetch1_instr_div_i);
 wire       issue_a_mule_w     = (slot0_valid_r ? fetch0_instr_mule_i     : fetch1_instr_mule_i); // use mule
 wire       issue_a_cbm_w      = (slot0_valid_r ? fetch0_instr_cbm_i      : fetch1_instr_cbm_i);
+wire       issue_a_mula_w     = issue_a_cbm_w && ((opcode_a_r & `INST_MULA_MASK) == `INST_MULA);
+wire       issue_a_mulx_w     = issue_a_cbm_w && ((opcode_a_r & `INST_MULX_MASK) == `INST_MULX);
+wire       issue_a_mulb_w     = issue_a_cbm_w && ((opcode_a_r & `INST_MULB_MASK) == `INST_MULB);
+wire       issue_a_mulr_w     = issue_a_cbm_w && ((opcode_a_r & `INST_MULR_MASK) == `INST_MULR);
+wire       issue_a_mulp_w     = issue_a_cbm_w && ((opcode_a_r & `INST_MULP_MASK) == `INST_MULP);
+wire       issue_a_mulc_w     = issue_a_cbm_w && ((opcode_a_r & `INST_MULC_MASK) == `INST_MULC);
+wire       issue_a_cbm_inst_w = issue_a_cbm_w && ((opcode_a_r & `INST_CBM_MASK)  == `INST_CBM);
 wire       issue_a_csr_w      = (slot0_valid_r ? fetch0_instr_csr_i      : fetch1_instr_csr_i);
 wire       issue_a_invalid_w  = (slot0_valid_r ? fetch0_instr_invalid_i  : fetch1_instr_invalid_i);
 
@@ -842,6 +902,13 @@ assign mul_opcode_valid_o   = enable_muldiv_w & (pipe1_mux_mul_r ? opcode_b_issu
 assign div_opcode_valid_o   = enable_muldiv_w & (opcode_a_issue_r);
 assign mule_opcode_valid_o  = enable_muldiv_w & (pipe1_mux_mule_r ? (opcode_b_issue_r & issue_b_mule_w)
                                                                 : (opcode_a_issue_r & issue_a_mule_w));
+assign mula_opcode_valid_o  = enable_muldiv_w & (opcode_a_issue_r & issue_a_mula_w);
+assign mulx_opcode_valid_o  = enable_muldiv_w & (opcode_a_issue_r & issue_a_mulx_w);
+assign mulb_opcode_valid_o  = enable_muldiv_w & (opcode_a_issue_r & issue_a_mulb_w);
+assign mulr_opcode_valid_o  = enable_muldiv_w & (opcode_a_issue_r & issue_a_mulr_w);
+assign mulp_opcode_valid_o  = enable_muldiv_w & (opcode_a_issue_r & issue_a_mulp_w);
+assign mulc_opcode_valid_o  = enable_muldiv_w & (opcode_a_issue_r & issue_a_mulc_w);
+assign cbm_inst_opcode_valid_o = enable_muldiv_w & (opcode_a_issue_r & issue_a_cbm_inst_w);
 assign interrupt_inhibit_o  = csr_pending_q || issue_a_csr_w;
 
 assign exec1_opcode_valid_o = opcode_b_issue_r;
@@ -1075,7 +1142,64 @@ assign mule_opcode_rb_operand_o = pipe1_mux_mule_r ? opcode1_rb_operand_o : opco
 assign mule_opcode_invalid_o    = pipe1_mux_mule_r ? (opcode_b_issue_r && issue_b_invalid_w)
                                                    : (opcode_a_issue_r && issue_a_invalid_w);
 
-assign cbm_opcode_valid_o     = enable_muldiv_w & (opcode_a_issue_r & issue_a_cbm_w);
+// Custom multiplier opcode buses (kept independent from CBM bus)
+assign mula_opcode_opcode_o      = opcode0_opcode_o;
+assign mula_opcode_pc_o          = opcode0_pc_o;
+assign mula_opcode_rd_idx_o      = opcode0_rd_idx_o;
+assign mula_opcode_ra_idx_o      = opcode0_ra_idx_o;
+assign mula_opcode_rb_idx_o      = opcode0_rb_idx_o;
+assign mula_opcode_ra_operand_o  = opcode0_ra_operand_o;
+assign mula_opcode_rb_operand_o  = opcode0_rb_operand_o;
+assign mula_opcode_invalid_o     = opcode_a_issue_r && issue_a_invalid_w;
+
+assign mulx_opcode_opcode_o      = opcode0_opcode_o;
+assign mulx_opcode_pc_o          = opcode0_pc_o;
+assign mulx_opcode_rd_idx_o      = opcode0_rd_idx_o;
+assign mulx_opcode_ra_idx_o      = opcode0_ra_idx_o;
+assign mulx_opcode_rb_idx_o      = opcode0_rb_idx_o;
+assign mulx_opcode_ra_operand_o  = opcode0_ra_operand_o;
+assign mulx_opcode_rb_operand_o  = opcode0_rb_operand_o;
+assign mulx_opcode_invalid_o     = opcode_a_issue_r && issue_a_invalid_w;
+
+assign mulb_opcode_opcode_o      = opcode0_opcode_o;
+assign mulb_opcode_pc_o          = opcode0_pc_o;
+assign mulb_opcode_rd_idx_o      = opcode0_rd_idx_o;
+assign mulb_opcode_ra_idx_o      = opcode0_ra_idx_o;
+assign mulb_opcode_rb_idx_o      = opcode0_rb_idx_o;
+assign mulb_opcode_ra_operand_o  = opcode0_ra_operand_o;
+assign mulb_opcode_rb_operand_o  = opcode0_rb_operand_o;
+assign mulb_opcode_invalid_o     = opcode_a_issue_r && issue_a_invalid_w;
+
+assign mulr_opcode_opcode_o      = opcode0_opcode_o;
+assign mulr_opcode_pc_o          = opcode0_pc_o;
+assign mulr_opcode_rd_idx_o      = opcode0_rd_idx_o;
+assign mulr_opcode_ra_idx_o      = opcode0_ra_idx_o;
+assign mulr_opcode_rb_idx_o      = opcode0_rb_idx_o;
+assign mulr_opcode_ra_operand_o  = opcode0_ra_operand_o;
+assign mulr_opcode_rb_operand_o  = opcode0_rb_operand_o;
+assign mulr_opcode_invalid_o     = opcode_a_issue_r && issue_a_invalid_w;
+
+assign mulp_opcode_opcode_o      = opcode0_opcode_o;
+assign mulp_opcode_pc_o          = opcode0_pc_o;
+assign mulp_opcode_rd_idx_o      = opcode0_rd_idx_o;
+assign mulp_opcode_ra_idx_o      = opcode0_ra_idx_o;
+assign mulp_opcode_rb_idx_o      = opcode0_rb_idx_o;
+assign mulp_opcode_ra_operand_o  = opcode0_ra_operand_o;
+assign mulp_opcode_rb_operand_o  = opcode0_rb_operand_o;
+assign mulp_opcode_invalid_o     = opcode_a_issue_r && issue_a_invalid_w;
+
+assign mulc_opcode_opcode_o      = opcode0_opcode_o;
+assign mulc_opcode_pc_o          = opcode0_pc_o;
+assign mulc_opcode_rd_idx_o      = opcode0_rd_idx_o;
+assign mulc_opcode_ra_idx_o      = opcode0_ra_idx_o;
+assign mulc_opcode_rb_idx_o      = opcode0_rb_idx_o;
+assign mulc_opcode_ra_operand_o  = opcode0_ra_operand_o;
+assign mulc_opcode_rb_operand_o  = opcode0_rb_operand_o;
+assign mulc_opcode_invalid_o     = opcode_a_issue_r && issue_a_invalid_w;
+
+assign cbm_opcode_valid_o     = cbm_inst_opcode_valid_o | mula_opcode_valid_o | mulx_opcode_valid_o |
+                                mulb_opcode_valid_o | mulr_opcode_valid_o | mulp_opcode_valid_o |
+                                mulc_opcode_valid_o;
 assign cbm_opcode_opcode_o    = opcode0_opcode_o;
 assign cbm_opcode_pc_o        = opcode0_pc_o;
 assign cbm_opcode_rd_idx_o    = opcode0_rd_idx_o;

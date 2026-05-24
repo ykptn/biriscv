@@ -1,6 +1,6 @@
 ###############################################################################
-# CBM Instruction Test Program
-# - Column-bypass custom multiply
+# MULC Instruction Test Program
+# - multi-cycle aggressive fixed-latency shift-add multiplier
 # - Golden reference derived from baseline MUL
 ###############################################################################
 
@@ -31,16 +31,12 @@ main:
     li   x11, OP_B
 
     mul  x13, x10, x11                      # Golden MUL reference
-    .insn r 0x0B, 0x0, 0x04, x12, x10, x11  # CBM custom result
+    .insn r 0x0B, 0x0, 0x09, x12, x10, x11  # MULC custom result
 
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
+    li   x5, 64
+1:
+    addi x5, x5, -1
+    bnez x5, 1b
 
     beq  x12, x13, pass_loop
     j    fail_loop

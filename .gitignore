@@ -37,10 +37,16 @@ tb/tb_mulr/build/output.out
 tb/tb_mulr/waveform.vcd
 tb/tb_mulp/build/output.out
 tb/tb_mulp/waveform.vcd
+tb/tb_mulc/build/output.out
+tb/tb_mulc/waveform.vcd
+tb/tb_cbm/build/output.out
+tb/tb_cbm/waveform.vcd
 *.vcd
 tb/tb_mul_compare/test_mul_compare.elf
 tb/tb_mul_compare/test_mul_compare.o
 tb/tb_mul_compare/build/tcm.bin
+tb/tb_mul_compare/build/output.out
+tb/tb_mul_compare/waveform.vcd
 tb/tb_mul_compare4/build/
 tb/tb_mul_compare4/test_mul_compare4.elf
 tb/tb_mul_compare4/test_mul_compare4.o

@@ -273,6 +273,61 @@ wire  [ 31:0]  writeback_mule_value_w;
 wire  [  4:0]  writeback_mule_rd_idx_w;
 
 wire           cbm_opcode_valid_w;
+wire           mula_opcode_valid_w;
+wire           mulx_opcode_valid_w;
+wire           mulb_opcode_valid_w;
+wire           mulr_opcode_valid_w;
+wire           mulp_opcode_valid_w;
+wire           mulc_opcode_valid_w;
+wire           cbm_inst_opcode_valid_w;
+wire  [ 31:0]  mula_opcode_opcode_w;
+wire  [ 31:0]  mula_opcode_pc_w;
+wire           mula_opcode_invalid_w;
+wire  [  4:0]  mula_opcode_rd_idx_w;
+wire  [  4:0]  mula_opcode_ra_idx_w;
+wire  [  4:0]  mula_opcode_rb_idx_w;
+wire  [ 31:0]  mula_opcode_ra_operand_w;
+wire  [ 31:0]  mula_opcode_rb_operand_w;
+wire  [ 31:0]  mulx_opcode_opcode_w;
+wire  [ 31:0]  mulx_opcode_pc_w;
+wire           mulx_opcode_invalid_w;
+wire  [  4:0]  mulx_opcode_rd_idx_w;
+wire  [  4:0]  mulx_opcode_ra_idx_w;
+wire  [  4:0]  mulx_opcode_rb_idx_w;
+wire  [ 31:0]  mulx_opcode_ra_operand_w;
+wire  [ 31:0]  mulx_opcode_rb_operand_w;
+wire  [ 31:0]  mulb_opcode_opcode_w;
+wire  [ 31:0]  mulb_opcode_pc_w;
+wire           mulb_opcode_invalid_w;
+wire  [  4:0]  mulb_opcode_rd_idx_w;
+wire  [  4:0]  mulb_opcode_ra_idx_w;
+wire  [  4:0]  mulb_opcode_rb_idx_w;
+wire  [ 31:0]  mulb_opcode_ra_operand_w;
+wire  [ 31:0]  mulb_opcode_rb_operand_w;
+wire  [ 31:0]  mulr_opcode_opcode_w;
+wire  [ 31:0]  mulr_opcode_pc_w;
+wire           mulr_opcode_invalid_w;
+wire  [  4:0]  mulr_opcode_rd_idx_w;
+wire  [  4:0]  mulr_opcode_ra_idx_w;
+wire  [  4:0]  mulr_opcode_rb_idx_w;
+wire  [ 31:0]  mulr_opcode_ra_operand_w;
+wire  [ 31:0]  mulr_opcode_rb_operand_w;
+wire  [ 31:0]  mulp_opcode_opcode_w;
+wire  [ 31:0]  mulp_opcode_pc_w;
+wire           mulp_opcode_invalid_w;
+wire  [  4:0]  mulp_opcode_rd_idx_w;
+wire  [  4:0]  mulp_opcode_ra_idx_w;
+wire  [  4:0]  mulp_opcode_rb_idx_w;
+wire  [ 31:0]  mulp_opcode_ra_operand_w;
+wire  [ 31:0]  mulp_opcode_rb_operand_w;
+wire  [ 31:0]  mulc_opcode_opcode_w;
+wire  [ 31:0]  mulc_opcode_pc_w;
+wire           mulc_opcode_invalid_w;
+wire  [  4:0]  mulc_opcode_rd_idx_w;
+wire  [  4:0]  mulc_opcode_ra_idx_w;
+wire  [  4:0]  mulc_opcode_rb_idx_w;
+wire  [ 31:0]  mulc_opcode_ra_operand_w;
+wire  [ 31:0]  mulc_opcode_rb_operand_w;
 wire  [ 31:0]  cbm_opcode_opcode_w;
 wire  [ 31:0]  cbm_opcode_pc_w;
 wire           cbm_opcode_invalid_w;
@@ -300,6 +355,12 @@ wire  [  4:0]  writeback_mulr_rd_idx_w;
 wire           writeback_mulp_valid_w;
 wire  [ 31:0]  writeback_mulp_value_w;
 wire  [  4:0]  writeback_mulp_rd_idx_w;
+wire           writeback_mulc_valid_w;
+wire  [ 31:0]  writeback_mulc_value_w;
+wire  [  4:0]  writeback_mulc_rd_idx_w;
+wire           writeback_cbm_inst_valid_w;
+wire  [ 31:0]  writeback_cbm_inst_value_w;
+wire  [  4:0]  writeback_cbm_inst_rd_idx_w;
 // --- END OF ADDED WIRES ---
 
 
@@ -594,15 +655,15 @@ u_mul_array
     // Inputs
      .clk_i(clk_i)
     ,.rst_i(rst_i)
-    ,.opcode_valid_i(cbm_opcode_valid_w)
-    ,.opcode_opcode_i(cbm_opcode_opcode_w)
-    ,.opcode_pc_i(cbm_opcode_pc_w)
-    ,.opcode_invalid_i(cbm_opcode_invalid_w)
-    ,.opcode_rd_idx_i(cbm_opcode_rd_idx_w)
-    ,.opcode_ra_idx_i(cbm_opcode_ra_idx_w)
-    ,.opcode_rb_idx_i(cbm_opcode_rb_idx_w)
-    ,.opcode_ra_operand_i(cbm_opcode_ra_operand_w)
-    ,.opcode_rb_operand_i(cbm_opcode_rb_operand_w)
+    ,.opcode_valid_i(mula_opcode_valid_w)
+    ,.opcode_opcode_i(mula_opcode_opcode_w)
+    ,.opcode_pc_i(mula_opcode_pc_w)
+    ,.opcode_invalid_i(mula_opcode_invalid_w)
+    ,.opcode_rd_idx_i(mula_opcode_rd_idx_w)
+    ,.opcode_ra_idx_i(mula_opcode_ra_idx_w)
+    ,.opcode_rb_idx_i(mula_opcode_rb_idx_w)
+    ,.opcode_ra_operand_i(mula_opcode_ra_operand_w)
+    ,.opcode_rb_operand_i(mula_opcode_rb_operand_w)
 
     // Outputs
     ,.writeback_valid_o(writeback_mula_valid_w)
@@ -616,15 +677,15 @@ u_mul_wallace
     // Inputs
      .clk_i(clk_i)
     ,.rst_i(rst_i)
-    ,.opcode_valid_i(cbm_opcode_valid_w)
-    ,.opcode_opcode_i(cbm_opcode_opcode_w)
-    ,.opcode_pc_i(cbm_opcode_pc_w)
-    ,.opcode_invalid_i(cbm_opcode_invalid_w)
-    ,.opcode_rd_idx_i(cbm_opcode_rd_idx_w)
-    ,.opcode_ra_idx_i(cbm_opcode_ra_idx_w)
-    ,.opcode_rb_idx_i(cbm_opcode_rb_idx_w)
-    ,.opcode_ra_operand_i(cbm_opcode_ra_operand_w)
-    ,.opcode_rb_operand_i(cbm_opcode_rb_operand_w)
+    ,.opcode_valid_i(mulx_opcode_valid_w)
+    ,.opcode_opcode_i(mulx_opcode_opcode_w)
+    ,.opcode_pc_i(mulx_opcode_pc_w)
+    ,.opcode_invalid_i(mulx_opcode_invalid_w)
+    ,.opcode_rd_idx_i(mulx_opcode_rd_idx_w)
+    ,.opcode_ra_idx_i(mulx_opcode_ra_idx_w)
+    ,.opcode_rb_idx_i(mulx_opcode_rb_idx_w)
+    ,.opcode_ra_operand_i(mulx_opcode_ra_operand_w)
+    ,.opcode_rb_operand_i(mulx_opcode_rb_operand_w)
 
     // Outputs
     ,.writeback_valid_o(writeback_mulx_valid_w)
@@ -638,15 +699,15 @@ u_mul_bw
     // Inputs
      .clk_i(clk_i)
     ,.rst_i(rst_i)
-    ,.opcode_valid_i(cbm_opcode_valid_w)
-    ,.opcode_opcode_i(cbm_opcode_opcode_w)
-    ,.opcode_pc_i(cbm_opcode_pc_w)
-    ,.opcode_invalid_i(cbm_opcode_invalid_w)
-    ,.opcode_rd_idx_i(cbm_opcode_rd_idx_w)
-    ,.opcode_ra_idx_i(cbm_opcode_ra_idx_w)
-    ,.opcode_rb_idx_i(cbm_opcode_rb_idx_w)
-    ,.opcode_ra_operand_i(cbm_opcode_ra_operand_w)
-    ,.opcode_rb_operand_i(cbm_opcode_rb_operand_w)
+    ,.opcode_valid_i(mulb_opcode_valid_w)
+    ,.opcode_opcode_i(mulb_opcode_opcode_w)
+    ,.opcode_pc_i(mulb_opcode_pc_w)
+    ,.opcode_invalid_i(mulb_opcode_invalid_w)
+    ,.opcode_rd_idx_i(mulb_opcode_rd_idx_w)
+    ,.opcode_ra_idx_i(mulb_opcode_ra_idx_w)
+    ,.opcode_rb_idx_i(mulb_opcode_rb_idx_w)
+    ,.opcode_ra_operand_i(mulb_opcode_ra_operand_w)
+    ,.opcode_rb_operand_i(mulb_opcode_rb_operand_w)
 
     // Outputs
     ,.writeback_valid_o(writeback_mulb_valid_w)
@@ -660,15 +721,15 @@ u_mulr
     // Inputs
      .clk_i(clk_i)
     ,.rst_i(rst_i)
-    ,.opcode_valid_i(cbm_opcode_valid_w)
-    ,.opcode_opcode_i(cbm_opcode_opcode_w)
-    ,.opcode_pc_i(cbm_opcode_pc_w)
-    ,.opcode_invalid_i(cbm_opcode_invalid_w)
-    ,.opcode_rd_idx_i(cbm_opcode_rd_idx_w)
-    ,.opcode_ra_idx_i(cbm_opcode_ra_idx_w)
-    ,.opcode_rb_idx_i(cbm_opcode_rb_idx_w)
-    ,.opcode_ra_operand_i(cbm_opcode_ra_operand_w)
-    ,.opcode_rb_operand_i(cbm_opcode_rb_operand_w)
+    ,.opcode_valid_i(mulr_opcode_valid_w)
+    ,.opcode_opcode_i(mulr_opcode_opcode_w)
+    ,.opcode_pc_i(mulr_opcode_pc_w)
+    ,.opcode_invalid_i(mulr_opcode_invalid_w)
+    ,.opcode_rd_idx_i(mulr_opcode_rd_idx_w)
+    ,.opcode_ra_idx_i(mulr_opcode_ra_idx_w)
+    ,.opcode_rb_idx_i(mulr_opcode_rb_idx_w)
+    ,.opcode_ra_operand_i(mulr_opcode_ra_operand_w)
+    ,.opcode_rb_operand_i(mulr_opcode_rb_operand_w)
 
     // Outputs
     ,.writeback_valid_o(writeback_mulr_valid_w)
@@ -682,7 +743,51 @@ u_mulp
     // Inputs
      .clk_i(clk_i)
     ,.rst_i(rst_i)
-    ,.opcode_valid_i(cbm_opcode_valid_w)
+    ,.opcode_valid_i(mulp_opcode_valid_w)
+    ,.opcode_opcode_i(mulp_opcode_opcode_w)
+    ,.opcode_pc_i(mulp_opcode_pc_w)
+    ,.opcode_invalid_i(mulp_opcode_invalid_w)
+    ,.opcode_rd_idx_i(mulp_opcode_rd_idx_w)
+    ,.opcode_ra_idx_i(mulp_opcode_ra_idx_w)
+    ,.opcode_rb_idx_i(mulp_opcode_rb_idx_w)
+    ,.opcode_ra_operand_i(mulp_opcode_ra_operand_w)
+    ,.opcode_rb_operand_i(mulp_opcode_rb_operand_w)
+
+    // Outputs
+    ,.writeback_valid_o(writeback_mulp_valid_w)
+    ,.writeback_value_o(writeback_mulp_value_w)
+    ,.writeback_rd_idx_o(writeback_mulp_rd_idx_w)
+);
+
+biriscv_multiplier_cyclic
+u_mulc
+(
+    // Inputs
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.opcode_valid_i(mulc_opcode_valid_w)
+    ,.opcode_opcode_i(mulc_opcode_opcode_w)
+    ,.opcode_pc_i(mulc_opcode_pc_w)
+    ,.opcode_invalid_i(mulc_opcode_invalid_w)
+    ,.opcode_rd_idx_i(mulc_opcode_rd_idx_w)
+    ,.opcode_ra_idx_i(mulc_opcode_ra_idx_w)
+    ,.opcode_rb_idx_i(mulc_opcode_rb_idx_w)
+    ,.opcode_ra_operand_i(mulc_opcode_ra_operand_w)
+    ,.opcode_rb_operand_i(mulc_opcode_rb_operand_w)
+
+    // Outputs
+    ,.writeback_valid_o(writeback_mulc_valid_w)
+    ,.writeback_value_o(writeback_mulc_value_w)
+    ,.writeback_rd_idx_o(writeback_mulc_rd_idx_w)
+);
+
+biriscv_multiplier_cbm
+u_cbm
+(
+    // Inputs
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.opcode_valid_i(cbm_inst_opcode_valid_w)
     ,.opcode_opcode_i(cbm_opcode_opcode_w)
     ,.opcode_pc_i(cbm_opcode_pc_w)
     ,.opcode_invalid_i(cbm_opcode_invalid_w)
@@ -693,20 +798,26 @@ u_mulp
     ,.opcode_rb_operand_i(cbm_opcode_rb_operand_w)
 
     // Outputs
-    ,.writeback_valid_o(writeback_mulp_valid_w)
-    ,.writeback_value_o(writeback_mulp_value_w)
-    ,.writeback_rd_idx_o(writeback_mulp_rd_idx_w)
+    ,.writeback_valid_o(writeback_cbm_inst_valid_w)
+    ,.writeback_value_o(writeback_cbm_inst_value_w)
+    ,.writeback_rd_idx_o(writeback_cbm_inst_rd_idx_w)
 );
 
-assign writeback_cbm_valid_w  = writeback_mula_valid_w | writeback_mulx_valid_w | writeback_mulb_valid_w | writeback_mulr_valid_w | writeback_mulp_valid_w;
-assign writeback_cbm_value_w  = writeback_mulp_valid_w ? writeback_mulp_value_w :
+assign writeback_cbm_valid_w  = writeback_mula_valid_w | writeback_mulx_valid_w | writeback_mulb_valid_w |
+                                writeback_mulr_valid_w | writeback_mulp_valid_w | writeback_mulc_valid_w |
+                                writeback_cbm_inst_valid_w;
+assign writeback_cbm_value_w  = writeback_cbm_inst_valid_w ? writeback_cbm_inst_value_w :
+                                (writeback_mulc_valid_w ? writeback_mulc_value_w :
+                                (writeback_mulp_valid_w ? writeback_mulp_value_w :
                                 (writeback_mulr_valid_w ? writeback_mulr_value_w :
                                 (writeback_mulb_valid_w ? writeback_mulb_value_w :
-                                (writeback_mulx_valid_w ? writeback_mulx_value_w : writeback_mula_value_w)));
-assign writeback_cbm_rd_idx_w = writeback_mulp_valid_w ? writeback_mulp_rd_idx_w :
+                                (writeback_mulx_valid_w ? writeback_mulx_value_w : writeback_mula_value_w)))));
+assign writeback_cbm_rd_idx_w = writeback_cbm_inst_valid_w ? writeback_cbm_inst_rd_idx_w :
+                                (writeback_mulc_valid_w ? writeback_mulc_rd_idx_w :
+                                (writeback_mulp_valid_w ? writeback_mulp_rd_idx_w :
                                 (writeback_mulr_valid_w ? writeback_mulr_rd_idx_w :
                                 (writeback_mulb_valid_w ? writeback_mulb_rd_idx_w :
-                                (writeback_mulx_valid_w ? writeback_mulx_rd_idx_w : writeback_mula_rd_idx_w)));
+                                (writeback_mulx_valid_w ? writeback_mulx_rd_idx_w : writeback_mula_rd_idx_w)))));
 
 assign cbm_busy_w             = 1'b0;
 
@@ -843,6 +954,13 @@ u_issue
     ,.mul_opcode_valid_o(mul_opcode_valid_w)
     ,.div_opcode_valid_o(div_opcode_valid_w)
     ,.mule_opcode_valid_o(mule_opcode_valid_w)
+    ,.mula_opcode_valid_o(mula_opcode_valid_w)
+    ,.mulx_opcode_valid_o(mulx_opcode_valid_w)
+    ,.mulb_opcode_valid_o(mulb_opcode_valid_w)
+    ,.mulr_opcode_valid_o(mulr_opcode_valid_w)
+    ,.mulp_opcode_valid_o(mulp_opcode_valid_w)
+    ,.mulc_opcode_valid_o(mulc_opcode_valid_w)
+    ,.cbm_inst_opcode_valid_o(cbm_inst_opcode_valid_w)
     ,.cbm_opcode_valid_o(cbm_opcode_valid_w)
     ,.opcode0_opcode_o(opcode0_opcode_w)
     ,.opcode0_pc_o(opcode0_pc_w)
@@ -892,6 +1010,54 @@ u_issue
     ,.mule_opcode_rb_idx_o(mule_opcode_rb_idx_w)
     ,.mule_opcode_ra_operand_o(mule_opcode_ra_operand_w)
     ,.mule_opcode_rb_operand_o(mule_opcode_rb_operand_w)
+    ,.mula_opcode_opcode_o(mula_opcode_opcode_w)
+    ,.mula_opcode_pc_o(mula_opcode_pc_w)
+    ,.mula_opcode_invalid_o(mula_opcode_invalid_w)
+    ,.mula_opcode_rd_idx_o(mula_opcode_rd_idx_w)
+    ,.mula_opcode_ra_idx_o(mula_opcode_ra_idx_w)
+    ,.mula_opcode_rb_idx_o(mula_opcode_rb_idx_w)
+    ,.mula_opcode_ra_operand_o(mula_opcode_ra_operand_w)
+    ,.mula_opcode_rb_operand_o(mula_opcode_rb_operand_w)
+    ,.mulx_opcode_opcode_o(mulx_opcode_opcode_w)
+    ,.mulx_opcode_pc_o(mulx_opcode_pc_w)
+    ,.mulx_opcode_invalid_o(mulx_opcode_invalid_w)
+    ,.mulx_opcode_rd_idx_o(mulx_opcode_rd_idx_w)
+    ,.mulx_opcode_ra_idx_o(mulx_opcode_ra_idx_w)
+    ,.mulx_opcode_rb_idx_o(mulx_opcode_rb_idx_w)
+    ,.mulx_opcode_ra_operand_o(mulx_opcode_ra_operand_w)
+    ,.mulx_opcode_rb_operand_o(mulx_opcode_rb_operand_w)
+    ,.mulb_opcode_opcode_o(mulb_opcode_opcode_w)
+    ,.mulb_opcode_pc_o(mulb_opcode_pc_w)
+    ,.mulb_opcode_invalid_o(mulb_opcode_invalid_w)
+    ,.mulb_opcode_rd_idx_o(mulb_opcode_rd_idx_w)
+    ,.mulb_opcode_ra_idx_o(mulb_opcode_ra_idx_w)
+    ,.mulb_opcode_rb_idx_o(mulb_opcode_rb_idx_w)
+    ,.mulb_opcode_ra_operand_o(mulb_opcode_ra_operand_w)
+    ,.mulb_opcode_rb_operand_o(mulb_opcode_rb_operand_w)
+    ,.mulr_opcode_opcode_o(mulr_opcode_opcode_w)
+    ,.mulr_opcode_pc_o(mulr_opcode_pc_w)
+    ,.mulr_opcode_invalid_o(mulr_opcode_invalid_w)
+    ,.mulr_opcode_rd_idx_o(mulr_opcode_rd_idx_w)
+    ,.mulr_opcode_ra_idx_o(mulr_opcode_ra_idx_w)
+    ,.mulr_opcode_rb_idx_o(mulr_opcode_rb_idx_w)
+    ,.mulr_opcode_ra_operand_o(mulr_opcode_ra_operand_w)
+    ,.mulr_opcode_rb_operand_o(mulr_opcode_rb_operand_w)
+    ,.mulp_opcode_opcode_o(mulp_opcode_opcode_w)
+    ,.mulp_opcode_pc_o(mulp_opcode_pc_w)
+    ,.mulp_opcode_invalid_o(mulp_opcode_invalid_w)
+    ,.mulp_opcode_rd_idx_o(mulp_opcode_rd_idx_w)
+    ,.mulp_opcode_ra_idx_o(mulp_opcode_ra_idx_w)
+    ,.mulp_opcode_rb_idx_o(mulp_opcode_rb_idx_w)
+    ,.mulp_opcode_ra_operand_o(mulp_opcode_ra_operand_w)
+    ,.mulp_opcode_rb_operand_o(mulp_opcode_rb_operand_w)
+    ,.mulc_opcode_opcode_o(mulc_opcode_opcode_w)
+    ,.mulc_opcode_pc_o(mulc_opcode_pc_w)
+    ,.mulc_opcode_invalid_o(mulc_opcode_invalid_w)
+    ,.mulc_opcode_rd_idx_o(mulc_opcode_rd_idx_w)
+    ,.mulc_opcode_ra_idx_o(mulc_opcode_ra_idx_w)
+    ,.mulc_opcode_rb_idx_o(mulc_opcode_rb_idx_w)
+    ,.mulc_opcode_ra_operand_o(mulc_opcode_ra_operand_w)
+    ,.mulc_opcode_rb_operand_o(mulc_opcode_rb_operand_w)
     ,.cbm_opcode_opcode_o(cbm_opcode_opcode_w)
     ,.cbm_opcode_pc_o(cbm_opcode_pc_w)
     ,.cbm_opcode_invalid_o(cbm_opcode_invalid_w)

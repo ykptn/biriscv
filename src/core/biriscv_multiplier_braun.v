@@ -1,5 +1,38 @@
 `include "biriscv_defs.v"
 
+module biriscv_mulp_csa64
+(
+    input  [63:0] a_i,
+    input  [63:0] b_i,
+    input  [63:0] c_i,
+    output [63:0] sum_o,
+    output [63:0] carry_o
+);
+assign sum_o   = a_i ^ b_i ^ c_i;
+assign carry_o = ((a_i & b_i) | (a_i & c_i) | (b_i & c_i)) << 1;
+endmodule
+
+module biriscv_mulp_rca64
+(
+    input  [63:0] a_i,
+    input  [63:0] b_i,
+    output [63:0] sum_o
+);
+wire [64:0] c_w;
+assign c_w[0] = 1'b0;
+
+genvar i;
+generate
+    for (i = 0; i < 64; i = i + 1)
+    begin : g_rca
+        assign sum_o[i] = a_i[i] ^ b_i[i] ^ c_w[i];
+        assign c_w[i + 1] = (a_i[i] & b_i[i]) |
+                            (a_i[i] & c_w[i]) |
+                            (b_i[i] & c_w[i]);
+    end
+endgenerate
+endmodule
+
 module biriscv_multiplier_braun
 (
     // Inputs
@@ -33,38 +66,36 @@ generate
     end
 endgenerate
 
-// Row-wise accumulation (regular array-style reduction).
-wire [63:0] row_sum_w [0:32];
-assign row_sum_w[0] = 64'b0;
+// Row-wise carry-save reduction.
+wire [63:0] row_sum_w   [0:31];
+wire [63:0] row_carry_w [0:31];
+
+assign row_sum_w[0]   = pp_w[0];
+assign row_carry_w[0] = 64'b0;
 
 genvar r;
 generate
-    for (r = 0; r < 32; r = r + 1)
+    for (r = 1; r < 32; r = r + 1)
     begin : g_rows
-        assign row_sum_w[r + 1] = row_sum_w[r] + pp_w[r];
+        biriscv_mulp_csa64 u_csa
+        (
+            .a_i(row_sum_w[r-1]),
+            .b_i(row_carry_w[r-1]),
+            .c_i(pp_w[r]),
+            .sum_o(row_sum_w[r]),
+            .carry_o(row_carry_w[r])
+        );
     end
 endgenerate
 
-wire [63:0] product_w = row_sum_w[32];
-
-// Intentionally slow 32-bit ripple-carry final adder stage.
-wire [31:0] low_a_w = product_w[31:0];
-wire [31:0] low_b_w = 32'b0;
-wire [32:0] rca_c_w;
-wire [31:0] final_low_w;
-
-assign rca_c_w[0] = 1'b0;
-
-genvar k;
-generate
-    for (k = 0; k < 32; k = k + 1)
-    begin : g_rca
-        assign final_low_w[k] = low_a_w[k] ^ low_b_w[k] ^ rca_c_w[k];
-        assign rca_c_w[k + 1] = (low_a_w[k] & low_b_w[k]) |
-                                (low_a_w[k] & rca_c_w[k]) |
-                                (low_b_w[k] & rca_c_w[k]);
-    end
-endgenerate
+// Intentionally slow final adder (64-bit ripple-carry).
+wire [63:0] final_product_w;
+biriscv_mulp_rca64 u_final_rca
+(
+    .a_i(row_sum_w[31]),
+    .b_i(row_carry_w[31]),
+    .sum_o(final_product_w)
+);
 
 reg         valid_q;
 reg [31:0]  result_q;
@@ -83,7 +114,7 @@ begin
 
     if (opcode_valid_i && inst_mulp_w)
     begin
-        result_q <= final_low_w;
+        result_q <= final_product_w[31:0];
         rd_idx_q <= opcode_rd_idx_i;
     end
     else

@@ -247,6 +247,9 @@
 `define INST_MULP_MASK  32'hFE00707F
 `define INST_MULP       32'h0400000B // funct7=2, funct3=0, opcode=custom-0
 
+`define INST_MULC_MASK  32'hFE00707F
+`define INST_MULC       32'h1200000B // funct7=9, funct3=0, opcode=custom-0
+
 `define INST_MULB_MASK  32'hFE00707F
 `define INST_MULB       32'h0E00000B // funct7=7, funct3=0, opcode=custom-0
 
