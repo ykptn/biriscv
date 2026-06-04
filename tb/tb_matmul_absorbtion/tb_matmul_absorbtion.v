@@ -155,7 +155,7 @@ always @(posedge clk) begin
 end
 
 initial begin
-    forever clk = #5 ~clk;
+    forever #5 clk = ~clk;
 end
 
 wire          mem_i_rd_w;

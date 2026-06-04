@@ -816,13 +816,11 @@ begin
     end    
 end
 
-wire mule_issue_valid_w = enable_muldiv_w & opcode_a_issue_r & issue_a_mule_w;
-
 assign lsu_opcode_valid_o   = (pipe1_mux_lsu_r ? opcode_b_issue_r : opcode_a_issue_r) & ~take_interrupt_i;
 assign exec0_opcode_valid_o = opcode_a_issue_r;
 assign mul_opcode_valid_o   = enable_muldiv_w & (pipe1_mux_mul_r ? opcode_b_issue_r : opcode_a_issue_r);
 assign div_opcode_valid_o   = enable_muldiv_w & (opcode_a_issue_r);
-assign mule_opcode_valid_o  = mule_issue_valid_w;
+assign mule_opcode_valid_o  = enable_muldiv_w & (opcode_a_issue_r & issue_a_mule_w);
 assign interrupt_inhibit_o  = csr_pending_q || issue_a_csr_w;
 
 assign exec1_opcode_valid_o = opcode_b_issue_r;
@@ -851,26 +849,11 @@ wire cbm_writeback_safe_w  = writeback_cbm_valid_i &&
                               cbm_pending_q &&
                               ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
 
-wire [4:0]  mule_writeback_rd_idx_w   = mule_writeback_safe_w ? writeback_mule_rd_idx_i : 5'b0;
-wire [31:0] mule_writeback_value_w    = mule_writeback_safe_w ? writeback_mule_value_i  : 32'b0;
-wire [4:0]  cbm_writeback_rd_idx_w    = cbm_writeback_safe_w  ? writeback_cbm_rd_idx_i  : 5'b0;
-wire [31:0] cbm_writeback_value_w     = cbm_writeback_safe_w  ? writeback_cbm_value_i   : 32'b0;
+wire [4:0]  pipe0_rd_wb_after_mule_w    = mule_writeback_safe_w ? writeback_mule_rd_idx_i : pipe0_rd_wb_w;
+wire [31:0] pipe0_result_wb_after_mule_w = mule_writeback_safe_w ? writeback_mule_value_i : pipe0_result_wb_w;
 
-wire [4:0]  issue_a_ra_idx_mule_cmp_w = mule_writeback_safe_w ? issue_a_ra_idx_w : 5'b0;
-wire [4:0]  issue_a_rb_idx_mule_cmp_w = mule_writeback_safe_w ? issue_a_rb_idx_w : 5'b0;
-wire [4:0]  issue_b_ra_idx_mule_cmp_w = mule_writeback_safe_w ? issue_b_ra_idx_w : 5'b0;
-wire [4:0]  issue_b_rb_idx_mule_cmp_w = mule_writeback_safe_w ? issue_b_rb_idx_w : 5'b0;
-
-wire        issue_a_ra_mule_match_w   = mule_writeback_safe_w && (mule_writeback_rd_idx_w == issue_a_ra_idx_mule_cmp_w);
-wire        issue_a_rb_mule_match_w   = mule_writeback_safe_w && (mule_writeback_rd_idx_w == issue_a_rb_idx_mule_cmp_w);
-wire        issue_b_ra_mule_match_w   = mule_writeback_safe_w && (mule_writeback_rd_idx_w == issue_b_ra_idx_mule_cmp_w);
-wire        issue_b_rb_mule_match_w   = mule_writeback_safe_w && (mule_writeback_rd_idx_w == issue_b_rb_idx_mule_cmp_w);
-
-wire [4:0]  pipe0_rd_wb_after_mule_w    = mule_writeback_safe_w ? mule_writeback_rd_idx_w : pipe0_rd_wb_w;
-wire [31:0] pipe0_result_wb_after_mule_w = mule_writeback_safe_w ? mule_writeback_value_w : pipe0_result_wb_w;
-
-wire [4:0]  pipe0_rd_wb_muxed_w    = cbm_writeback_safe_w ? cbm_writeback_rd_idx_w : pipe0_rd_wb_after_mule_w;
-wire [31:0] pipe0_result_wb_muxed_w = cbm_writeback_safe_w ? cbm_writeback_value_w  : pipe0_result_wb_after_mule_w;
+wire [4:0]  pipe0_rd_wb_muxed_w    = cbm_writeback_safe_w ? writeback_cbm_rd_idx_i : pipe0_rd_wb_after_mule_w;
+wire [31:0] pipe0_result_wb_muxed_w = cbm_writeback_safe_w ? writeback_cbm_value_i   : pipe0_result_wb_after_mule_w;
 
 // Register file: 2W4R
 biriscv_regfile
@@ -935,13 +918,13 @@ begin
     // Only bypass if: valid, non-zero register, and legitimate pending operation
     if (cbm_writeback_safe_w && writeback_cbm_rd_idx_i == issue_a_ra_idx_w)
         issue_a_ra_value_r = writeback_cbm_value_i;
-    else if (issue_a_ra_mule_match_w)
-        issue_a_ra_value_r = mule_writeback_value_w;
+    else if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_a_ra_idx_w)
+        issue_a_ra_value_r = writeback_mule_value_i;
 
     if (cbm_writeback_safe_w && writeback_cbm_rd_idx_i == issue_a_rb_idx_w)
         issue_a_rb_value_r = writeback_cbm_value_i;
-    else if (issue_a_rb_mule_match_w)
-        issue_a_rb_value_r = mule_writeback_value_w;
+    else if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_a_rb_idx_w)
+        issue_a_rb_value_r = writeback_mule_value_i;
 
     // Bypass - E2
     if (pipe0_rd_e2_w == issue_a_ra_idx_w)
@@ -1009,13 +992,13 @@ begin
     // Only bypass if: valid, non-zero register, and legitimate pending operation
     if (cbm_writeback_safe_w && writeback_cbm_rd_idx_i == issue_b_ra_idx_w)
         issue_b_ra_value_r = writeback_cbm_value_i;
-    else if (issue_b_ra_mule_match_w)
-        issue_b_ra_value_r = mule_writeback_value_w;
+    else if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_b_ra_idx_w)
+        issue_b_ra_value_r = writeback_mule_value_i;
 
     if (cbm_writeback_safe_w && writeback_cbm_rd_idx_i == issue_b_rb_idx_w)
         issue_b_rb_value_r = writeback_cbm_value_i;
-    else if (issue_b_rb_mule_match_w)
-        issue_b_rb_value_r = mule_writeback_value_w;
+    else if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_b_rb_idx_w)
+        issue_b_rb_value_r = writeback_mule_value_i;
 
     // Bypass - E2
     if (pipe0_rd_e2_w == issue_b_ra_idx_w)
@@ -1076,14 +1059,14 @@ assign mul_opcode_invalid_o     = 1'b0;
 //-------------------------------------------------------------
 // MULE unit
 //-------------------------------------------------------------
-assign mule_opcode_opcode_o     = mule_issue_valid_w ? opcode0_opcode_o     : 32'b0;
-assign mule_opcode_pc_o         = mule_issue_valid_w ? opcode0_pc_o         : 32'b0;
-assign mule_opcode_rd_idx_o     = mule_issue_valid_w ? opcode0_rd_idx_o     : 5'b0;
-assign mule_opcode_ra_idx_o     = mule_issue_valid_w ? opcode0_ra_idx_o     : 5'b0;
-assign mule_opcode_rb_idx_o     = mule_issue_valid_w ? opcode0_rb_idx_o     : 5'b0;
-assign mule_opcode_ra_operand_o = mule_issue_valid_w ? opcode0_ra_operand_o : 32'b0;
-assign mule_opcode_rb_operand_o = mule_issue_valid_w ? opcode0_rb_operand_o : 32'b0;
-assign mule_opcode_invalid_o    = mule_issue_valid_w && issue_a_invalid_w;
+assign mule_opcode_opcode_o     = opcode0_opcode_o;
+assign mule_opcode_pc_o         = opcode0_pc_o;
+assign mule_opcode_rd_idx_o     = opcode0_rd_idx_o;
+assign mule_opcode_ra_idx_o     = opcode0_ra_idx_o;
+assign mule_opcode_rb_idx_o     = opcode0_rb_idx_o;
+assign mule_opcode_ra_operand_o = opcode0_ra_operand_o;
+assign mule_opcode_rb_operand_o = opcode0_rb_operand_o;
+assign mule_opcode_invalid_o    = opcode_a_issue_r && issue_a_invalid_w;
 
 assign cbm_opcode_valid_o     = enable_muldiv_w & (opcode_a_issue_r & issue_a_cbm_w);
 assign cbm_opcode_opcode_o    = opcode0_opcode_o;
