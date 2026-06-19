@@ -39,7 +39,20 @@ module biriscv_decoder
     ,output                       div_o
     ,output                       csr_o
     ,output                       mule_o
+    ,output                       mulen_o
+    ,output                       mule2_o
+    ,output                       mule2n_o
+    ,output                       mule3_o
+    ,output                       mule3n_o
+    ,output                       mule5_o
+    ,output                       mule5n_o
     ,output                       cbm_o
+    ,output                       mula_o
+    ,output                       mulx_o
+    ,output                       mulb_o
+    ,output                       mulr_o
+    ,output                       mulp_o
+    ,output                       mulc_o
     ,output                       rd_valid_o
 );
 
@@ -105,6 +118,13 @@ wire invalid_w =    valid_i &&
                     (enable_muldiv_i && (opcode_i & `INST_REM_MASK) == `INST_REM)       ||
                     (enable_muldiv_i && (opcode_i & `INST_REMU_MASK) == `INST_REMU)    ||
                     (enable_muldiv_i && (opcode_i & `INST_MULE_MASK) == `INST_MULE)    ||
+                    (enable_muldiv_i && (opcode_i & `INST_MULEN_MASK) == `INST_MULEN)  ||
+                    (enable_muldiv_i && (opcode_i & `INST_MULE2_MASK) == `INST_MULE2)  ||
+                    (enable_muldiv_i && (opcode_i & `INST_MULE2N_MASK) == `INST_MULE2N) ||
+                    (enable_muldiv_i && (opcode_i & `INST_MULE3_MASK) == `INST_MULE3)  ||
+                    (enable_muldiv_i && (opcode_i & `INST_MULE3N_MASK) == `INST_MULE3N)  ||
+                    (enable_muldiv_i && (opcode_i & `INST_MULE5_MASK) == `INST_MULE5)  ||
+                    (enable_muldiv_i && (opcode_i & `INST_MULE5N_MASK) == `INST_MULE5N)  ||
                     (enable_muldiv_i && (opcode_i & `INST_MULA_MASK) == `INST_MULA)    ||
                     (enable_muldiv_i && (opcode_i & `INST_MULX_MASK) == `INST_MULX)    ||
                     (enable_muldiv_i && (opcode_i & `INST_MULR_MASK) == `INST_MULR)    ||
@@ -165,7 +185,14 @@ assign rd_valid_o = ((opcode_i & `INST_JALR_MASK) == `INST_JALR)     ||
                     ((opcode_i & `INST_CSRRWI_MASK) == `INST_CSRRWI) ||
                     ((opcode_i & `INST_CSRRSI_MASK) == `INST_CSRRSI) ||
                     ((opcode_i & `INST_CSRRCI_MASK) == `INST_CSRRCI) ||
-(enable_muldiv_i && (opcode_i & `INST_MULE_MASK) == `INST_MULE);
+(enable_muldiv_i && (((opcode_i & `INST_MULE_MASK) == `INST_MULE)   ||
+                     ((opcode_i & `INST_MULEN_MASK) == `INST_MULEN) ||
+                     ((opcode_i & `INST_MULE2_MASK) == `INST_MULE2) ||
+                     ((opcode_i & `INST_MULE2N_MASK) == `INST_MULE2N) ||
+                     ((opcode_i & `INST_MULE3_MASK) == `INST_MULE3) ||
+                     ((opcode_i & `INST_MULE3N_MASK) == `INST_MULE3N) ||
+                     ((opcode_i & `INST_MULE5_MASK) == `INST_MULE5) ||
+                     ((opcode_i & `INST_MULE5N_MASK) == `INST_MULE5N)));
 
 assign exec_o =     ((opcode_i & `INST_ANDI_MASK) == `INST_ANDI)  ||
                     ((opcode_i & `INST_ADDI_MASK) == `INST_ADDI)  ||
@@ -236,16 +263,34 @@ assign csr_o =      ((opcode_i & `INST_ECALL_MASK) == `INST_ECALL)            ||
                     invalid_w || fetch_fault_i;
                     
 assign mule_o =     enable_muldiv_i &&
-                    (((opcode_i & `INST_MULE_MASK) == `INST_MULE));
-
-// Route custom aggressive multipliers into the existing CBM issue/writeback path.
-assign cbm_o  = enable_muldiv_i &&
-                (((opcode_i & `INST_MULA_MASK) == `INST_MULA) ||
-                 ((opcode_i & `INST_MULX_MASK) == `INST_MULX) ||
-                 ((opcode_i & `INST_MULR_MASK) == `INST_MULR) ||
-                 ((opcode_i & `INST_MULP_MASK) == `INST_MULP) ||
-                 ((opcode_i & `INST_MULC_MASK) == `INST_MULC) ||
-                 ((opcode_i & `INST_MULB_MASK) == `INST_MULB) ||
-                 ((opcode_i & `INST_CBM_MASK)  == `INST_CBM));
+                    ((opcode_i & `INST_MULE_MASK) == `INST_MULE);
+assign mulen_o =    enable_muldiv_i &&
+                    ((opcode_i & `INST_MULEN_MASK) == `INST_MULEN);
+assign mule2_o =    enable_muldiv_i &&
+                    ((opcode_i & `INST_MULE2_MASK) == `INST_MULE2);
+assign mule2n_o =   enable_muldiv_i &&
+                    ((opcode_i & `INST_MULE2N_MASK) == `INST_MULE2N);
+assign mule3_o =    enable_muldiv_i &&
+                    ((opcode_i & `INST_MULE3_MASK) == `INST_MULE3);
+assign mule3n_o =   enable_muldiv_i &&
+                    ((opcode_i & `INST_MULE3N_MASK) == `INST_MULE3N);
+assign mule5_o =    enable_muldiv_i &&
+                    ((opcode_i & `INST_MULE5_MASK) == `INST_MULE5);
+assign mule5n_o =   enable_muldiv_i &&
+                    ((opcode_i & `INST_MULE5N_MASK) == `INST_MULE5N);
+assign cbm_o  =     enable_muldiv_i &&
+                    ((opcode_i & `INST_CBM_MASK)  == `INST_CBM);
+assign mula_o =     enable_muldiv_i &&
+                    ((opcode_i & `INST_MULA_MASK) == `INST_MULA);
+assign mulx_o =     enable_muldiv_i &&
+                    ((opcode_i & `INST_MULX_MASK) == `INST_MULX);
+assign mulb_o =     enable_muldiv_i &&
+                    ((opcode_i & `INST_MULB_MASK) == `INST_MULB);
+assign mulr_o =     enable_muldiv_i &&
+                    ((opcode_i & `INST_MULR_MASK) == `INST_MULR);
+assign mulp_o =     enable_muldiv_i &&
+                    ((opcode_i & `INST_MULP_MASK) == `INST_MULP);
+assign mulc_o =     enable_muldiv_i &&
+                    ((opcode_i & `INST_MULC_MASK) == `INST_MULC);
 
 endmodule

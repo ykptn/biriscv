@@ -46,7 +46,20 @@ module biriscv_pipe_ctrl
     ,input           issue_div_i
     ,input           issue_mul_i
     ,input           issue_mule_i
+    ,input           issue_mulen_i
+    ,input           issue_mule2_i
+    ,input           issue_mule2n_i
+    ,input           issue_mule3_i
+    ,input           issue_mule3n_i
+    ,input           issue_mule5_i
+    ,input           issue_mule5n_i
     ,input           issue_cbm_i
+    ,input           issue_mula_i
+    ,input           issue_mulx_i
+    ,input           issue_mulb_i
+    ,input           issue_mulr_i
+    ,input           issue_mulp_i
+    ,input           issue_mulc_i
     ,input           issue_branch_i
     ,input           issue_rd_valid_i
     ,input  [4:0]    issue_rd_i
@@ -96,8 +109,32 @@ module biriscv_pipe_ctrl
     ,input  [31:0]   div_result_i
     ,input           mule_complete_i
     ,input  [31:0]   mule_result_i
+    ,input           mule2_complete_i
+    ,input  [31:0]   mule2_result_i
+    ,input           mule2n_complete_i
+    ,input  [31:0]   mule2n_result_i
+    ,input           mule3_complete_i
+    ,input  [31:0]   mule3_result_i
+    ,input           mule3n_complete_i
+    ,input  [31:0]   mule3n_result_i
+    ,input           mule5_complete_i
+    ,input  [31:0]   mule5_result_i
+    ,input           mule5n_complete_i
+    ,input  [31:0]   mule5n_result_i
     ,input           cbm_complete_i
     ,input  [31:0]   cbm_result_i
+    ,input           mula_complete_i
+    ,input  [31:0]   mula_result_i
+    ,input           mulx_complete_i
+    ,input  [31:0]   mulx_result_i
+    ,input           mulb_complete_i
+    ,input  [31:0]   mulb_result_i
+    ,input           mulr_complete_i
+    ,input  [31:0]   mulr_result_i
+    ,input           mulp_complete_i
+    ,input  [31:0]   mulp_result_i
+    ,input           mulc_complete_i
+    ,input  [31:0]   mulc_result_i
 
     // Commit
     ,output          valid_wb_o
@@ -128,7 +165,7 @@ wire branch_misaligned_w = (issue_branch_taken_i && issue_branch_target_i[1:0] !
 //-------------------------------------------------------------
 // E1 / Address
 //------------------------------------------------------------- 
-`define PCINFO_W     12
+`define PCINFO_W     25
 `define PCINFO_ALU       0
 `define PCINFO_LOAD      1
 `define PCINFO_STORE     2
@@ -140,7 +177,20 @@ wire branch_misaligned_w = (issue_branch_taken_i && issue_branch_target_i[1:0] !
 `define PCINFO_INTR      8
 `define PCINFO_COMPLETE  9
 `define PCINFO_MULE      10
-`define PCINFO_CBM       11
+`define PCINFO_MULEN     11
+`define PCINFO_MULE2     12
+`define PCINFO_MULE2N    13
+`define PCINFO_MULE3     14
+`define PCINFO_MULE3N    15
+`define PCINFO_MULE5     16
+`define PCINFO_MULE5N    17
+`define PCINFO_CBM       18
+`define PCINFO_MULA      19
+`define PCINFO_MULX      20
+`define PCINFO_MULB      21
+`define PCINFO_MULR      22
+`define PCINFO_MULP      23
+`define PCINFO_MULC      24
 
 `define RD_IDX_R    11:7
 
@@ -170,7 +220,11 @@ else if (issue_stall_i)
 else if ((issue_valid_i && issue_accept_i) && ~(squash_e1_e2_o || squash_e1_e2_i))
 begin
     valid_e1_q                  <= 1'b1;
-    ctrl_e1_q[`PCINFO_ALU]      <= ~(issue_lsu_i | issue_csr_i | issue_div_i | issue_mul_i | issue_mule_i | issue_cbm_i);
+    ctrl_e1_q[`PCINFO_ALU]      <= ~(issue_lsu_i | issue_csr_i | issue_div_i | issue_mul_i |
+                                     issue_mule_i | issue_mulen_i | issue_mule2_i | issue_mule2n_i | issue_mule3_i |
+                                     issue_mule3n_i |
+                                     issue_mule5_i | issue_mule5n_i | issue_cbm_i | issue_mula_i | issue_mulx_i |
+                                     issue_mulb_i | issue_mulr_i | issue_mulp_i | issue_mulc_i);
     ctrl_e1_q[`PCINFO_LOAD]     <= issue_lsu_i &  issue_rd_valid_i & ~take_interrupt_i;
     // TODO: Check
     ctrl_e1_q[`PCINFO_STORE]    <= issue_lsu_i & ~issue_rd_valid_i & ~take_interrupt_i;
@@ -178,9 +232,22 @@ begin
     ctrl_e1_q[`PCINFO_DIV]      <= issue_div_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_MUL]      <= issue_mul_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_MULE]     <= issue_mule_i & ~take_interrupt_i;
+    ctrl_e1_q[`PCINFO_MULEN]    <= issue_mulen_i & ~take_interrupt_i;
+    ctrl_e1_q[`PCINFO_MULE2]    <= issue_mule2_i & ~take_interrupt_i;
+    ctrl_e1_q[`PCINFO_MULE2N]   <= issue_mule2n_i & ~take_interrupt_i;
+    ctrl_e1_q[`PCINFO_MULE3]    <= issue_mule3_i & ~take_interrupt_i;
+    ctrl_e1_q[`PCINFO_MULE3N]   <= issue_mule3n_i & ~take_interrupt_i;
+    ctrl_e1_q[`PCINFO_MULE5]    <= issue_mule5_i & ~take_interrupt_i;
+    ctrl_e1_q[`PCINFO_MULE5N]   <= issue_mule5n_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_CBM]      <= issue_cbm_i & ~take_interrupt_i;
+    ctrl_e1_q[`PCINFO_MULA]     <= issue_mula_i & ~take_interrupt_i;
+    ctrl_e1_q[`PCINFO_MULX]     <= issue_mulx_i & ~take_interrupt_i;
+    ctrl_e1_q[`PCINFO_MULB]     <= issue_mulb_i & ~take_interrupt_i;
+    ctrl_e1_q[`PCINFO_MULR]     <= issue_mulr_i & ~take_interrupt_i;
+    ctrl_e1_q[`PCINFO_MULP]     <= issue_mulp_i & ~take_interrupt_i;
+    ctrl_e1_q[`PCINFO_MULC]     <= issue_mulc_i & ~take_interrupt_i;
     ctrl_e1_q[`PCINFO_BRANCH]   <= issue_branch_i & ~take_interrupt_i;
-    ctrl_e1_q[`PCINFO_RD_VALID] <= issue_rd_valid_i & ~take_interrupt_i;
+    ctrl_e1_q[`PCINFO_RD_VALID] <= issue_rd_valid_i & ~take_interrupt_i & ~issue_mulen_i & ~issue_mule2n_i & ~issue_mule3n_i & ~issue_mule5n_i;
     ctrl_e1_q[`PCINFO_INTR]     <= take_interrupt_i;
     ctrl_e1_q[`PCINFO_COMPLETE] <= 1'b1;
     pc_e1_q         <= issue_pc_i;
@@ -293,8 +360,32 @@ begin
         result_e2_q <= div_result_i;
     else if (ctrl_e1_q[`PCINFO_MULE])
         result_e2_q <= mule_result_i;
+    else if (ctrl_e1_q[`PCINFO_MULE2])
+        result_e2_q <= mule2_result_i;
+    else if (ctrl_e1_q[`PCINFO_MULE2N])
+        result_e2_q <= mule2n_result_i;
+    else if (ctrl_e1_q[`PCINFO_MULE3])
+        result_e2_q <= mule3_result_i;
+    else if (ctrl_e1_q[`PCINFO_MULE3N])
+        result_e2_q <= mule3n_result_i;
+    else if (ctrl_e1_q[`PCINFO_MULE5])
+        result_e2_q <= mule5_result_i;
+    else if (ctrl_e1_q[`PCINFO_MULE5N])
+        result_e2_q <= mule5n_result_i;
     else if (ctrl_e1_q[`PCINFO_CBM])
         result_e2_q <= cbm_result_i;
+    else if (ctrl_e1_q[`PCINFO_MULA])
+        result_e2_q <= mula_result_i;
+    else if (ctrl_e1_q[`PCINFO_MULX])
+        result_e2_q <= mulx_result_i;
+    else if (ctrl_e1_q[`PCINFO_MULB])
+        result_e2_q <= mulb_result_i;
+    else if (ctrl_e1_q[`PCINFO_MULR])
+        result_e2_q <= mulr_result_i;
+    else if (ctrl_e1_q[`PCINFO_MULP])
+        result_e2_q <= mulp_result_i;
+    else if (ctrl_e1_q[`PCINFO_MULC])
+        result_e2_q <= mulc_result_i;
     else if (ctrl_e1_q[`PCINFO_CSR])
         result_e2_q <= csr_result_value_e1_i;
     else
@@ -322,7 +413,17 @@ assign result_e2_o     = result_e2_r;
 
 // Load store result not ready when reaching E2
 assign stall_o         = (ctrl_e1_q[`PCINFO_DIV] && ~div_complete_i)  ||
+                         (ctrl_e1_q[`PCINFO_MULE] && ~mule_complete_i) ||
+                         (ctrl_e1_q[`PCINFO_MULE2] && ~mule2_complete_i) ||
+                         (ctrl_e1_q[`PCINFO_MULE3] && ~mule3_complete_i) ||
+                         (ctrl_e1_q[`PCINFO_MULE5] && ~mule5_complete_i) ||
                          (ctrl_e1_q[`PCINFO_CBM] && ~cbm_complete_i)  ||
+                         (ctrl_e1_q[`PCINFO_MULA] && ~mula_complete_i) ||
+                         (ctrl_e1_q[`PCINFO_MULX] && ~mulx_complete_i) ||
+                         (ctrl_e1_q[`PCINFO_MULB] && ~mulb_complete_i) ||
+                         (ctrl_e1_q[`PCINFO_MULR] && ~mulr_complete_i) ||
+                         (ctrl_e1_q[`PCINFO_MULP] && ~mulp_complete_i) ||
+                         (ctrl_e1_q[`PCINFO_MULC] && ~mulc_complete_i) ||
                          ((ctrl_e2_q[`PCINFO_LOAD] | ctrl_e2_q[`PCINFO_STORE]) & ~mem_complete_i);
 
 reg [`EXCEPTION_W-1:0] exception_e2_r;
@@ -404,6 +505,90 @@ begin
     csr_wr_wb_q     <= 1'b0;
     csr_wdata_wb_q  <= 32'b0;
 end
+else if (ctrl_e1_q[`PCINFO_MULE2] && mule2_complete_i && valid_e1_q && ~valid_e2_q)
+begin
+    valid_wb_q      <= 1'b1;
+    ctrl_wb_q       <= ctrl_e1_q;
+    pc_wb_q         <= pc_e1_q;
+    npc_wb_q        <= npc_e1_q;
+    opcode_wb_q     <= opcode_e1_q;
+    operand_ra_wb_q <= operand_ra_e1_q;
+    operand_rb_wb_q <= operand_rb_e1_q;
+    result_wb_q     <= mule2_result_i;
+    exception_wb_q  <= exception_e1_q;
+    csr_wr_wb_q     <= 1'b0;
+    csr_wdata_wb_q  <= 32'b0;
+end
+else if (ctrl_e1_q[`PCINFO_MULE2N] && mule2n_complete_i && valid_e1_q && ~valid_e2_q)
+begin
+    valid_wb_q      <= 1'b1;
+    ctrl_wb_q       <= ctrl_e1_q;
+    pc_wb_q         <= pc_e1_q;
+    npc_wb_q        <= npc_e1_q;
+    opcode_wb_q     <= opcode_e1_q;
+    operand_ra_wb_q <= operand_ra_e1_q;
+    operand_rb_wb_q <= operand_rb_e1_q;
+    result_wb_q     <= mule2n_result_i;
+    exception_wb_q  <= exception_e1_q;
+    csr_wr_wb_q     <= 1'b0;
+    csr_wdata_wb_q  <= 32'b0;
+end
+else if (ctrl_e1_q[`PCINFO_MULE3] && mule3_complete_i && valid_e1_q && ~valid_e2_q)
+begin
+    valid_wb_q      <= 1'b1;
+    ctrl_wb_q       <= ctrl_e1_q;
+    pc_wb_q         <= pc_e1_q;
+    npc_wb_q        <= npc_e1_q;
+    opcode_wb_q     <= opcode_e1_q;
+    operand_ra_wb_q <= operand_ra_e1_q;
+    operand_rb_wb_q <= operand_rb_e1_q;
+    result_wb_q     <= mule3_result_i;
+    exception_wb_q  <= exception_e1_q;
+    csr_wr_wb_q     <= 1'b0;
+    csr_wdata_wb_q  <= 32'b0;
+end
+else if (ctrl_e1_q[`PCINFO_MULE3N] && mule3n_complete_i && valid_e1_q && ~valid_e2_q)
+begin
+    valid_wb_q      <= 1'b1;
+    ctrl_wb_q       <= ctrl_e1_q;
+    pc_wb_q         <= pc_e1_q;
+    npc_wb_q        <= npc_e1_q;
+    opcode_wb_q     <= opcode_e1_q;
+    operand_ra_wb_q <= operand_ra_e1_q;
+    operand_rb_wb_q <= operand_rb_e1_q;
+    result_wb_q     <= mule3n_result_i;
+    exception_wb_q  <= exception_e1_q;
+    csr_wr_wb_q     <= 1'b0;
+    csr_wdata_wb_q  <= 32'b0;
+end
+else if (ctrl_e1_q[`PCINFO_MULE5] && mule5_complete_i && valid_e1_q && ~valid_e2_q)
+begin
+    valid_wb_q      <= 1'b1;
+    ctrl_wb_q       <= ctrl_e1_q;
+    pc_wb_q         <= pc_e1_q;
+    npc_wb_q        <= npc_e1_q;
+    opcode_wb_q     <= opcode_e1_q;
+    operand_ra_wb_q <= operand_ra_e1_q;
+    operand_rb_wb_q <= operand_rb_e1_q;
+    result_wb_q     <= mule5_result_i;
+    exception_wb_q  <= exception_e1_q;
+    csr_wr_wb_q     <= 1'b0;
+    csr_wdata_wb_q  <= 32'b0;
+end
+else if (ctrl_e1_q[`PCINFO_MULE5N] && mule5n_complete_i && valid_e1_q && ~valid_e2_q)
+begin
+    valid_wb_q      <= 1'b1;
+    ctrl_wb_q       <= ctrl_e1_q;
+    pc_wb_q         <= pc_e1_q;
+    npc_wb_q        <= npc_e1_q;
+    opcode_wb_q     <= opcode_e1_q;
+    operand_ra_wb_q <= operand_ra_e1_q;
+    operand_rb_wb_q <= operand_rb_e1_q;
+    result_wb_q     <= mule5n_result_i;
+    exception_wb_q  <= exception_e1_q;
+    csr_wr_wb_q     <= 1'b0;
+    csr_wdata_wb_q  <= 32'b0;
+end
 else if (ctrl_e1_q[`PCINFO_CBM] && cbm_complete_i && valid_e1_q && ~valid_e2_q)
 begin
     valid_wb_q      <= 1'b1;
@@ -414,6 +599,90 @@ begin
     operand_ra_wb_q <= operand_ra_e1_q;
     operand_rb_wb_q <= operand_rb_e1_q;
     result_wb_q     <= cbm_result_i;
+    exception_wb_q  <= exception_e1_q;
+    csr_wr_wb_q     <= 1'b0;
+    csr_wdata_wb_q  <= 32'b0;
+end
+else if (ctrl_e1_q[`PCINFO_MULA] && mula_complete_i && valid_e1_q && ~valid_e2_q)
+begin
+    valid_wb_q      <= 1'b1;
+    ctrl_wb_q       <= ctrl_e1_q;
+    pc_wb_q         <= pc_e1_q;
+    npc_wb_q        <= npc_e1_q;
+    opcode_wb_q     <= opcode_e1_q;
+    operand_ra_wb_q <= operand_ra_e1_q;
+    operand_rb_wb_q <= operand_rb_e1_q;
+    result_wb_q     <= mula_result_i;
+    exception_wb_q  <= exception_e1_q;
+    csr_wr_wb_q     <= 1'b0;
+    csr_wdata_wb_q  <= 32'b0;
+end
+else if (ctrl_e1_q[`PCINFO_MULX] && mulx_complete_i && valid_e1_q && ~valid_e2_q)
+begin
+    valid_wb_q      <= 1'b1;
+    ctrl_wb_q       <= ctrl_e1_q;
+    pc_wb_q         <= pc_e1_q;
+    npc_wb_q        <= npc_e1_q;
+    opcode_wb_q     <= opcode_e1_q;
+    operand_ra_wb_q <= operand_ra_e1_q;
+    operand_rb_wb_q <= operand_rb_e1_q;
+    result_wb_q     <= mulx_result_i;
+    exception_wb_q  <= exception_e1_q;
+    csr_wr_wb_q     <= 1'b0;
+    csr_wdata_wb_q  <= 32'b0;
+end
+else if (ctrl_e1_q[`PCINFO_MULB] && mulb_complete_i && valid_e1_q && ~valid_e2_q)
+begin
+    valid_wb_q      <= 1'b1;
+    ctrl_wb_q       <= ctrl_e1_q;
+    pc_wb_q         <= pc_e1_q;
+    npc_wb_q        <= npc_e1_q;
+    opcode_wb_q     <= opcode_e1_q;
+    operand_ra_wb_q <= operand_ra_e1_q;
+    operand_rb_wb_q <= operand_rb_e1_q;
+    result_wb_q     <= mulb_result_i;
+    exception_wb_q  <= exception_e1_q;
+    csr_wr_wb_q     <= 1'b0;
+    csr_wdata_wb_q  <= 32'b0;
+end
+else if (ctrl_e1_q[`PCINFO_MULR] && mulr_complete_i && valid_e1_q && ~valid_e2_q)
+begin
+    valid_wb_q      <= 1'b1;
+    ctrl_wb_q       <= ctrl_e1_q;
+    pc_wb_q         <= pc_e1_q;
+    npc_wb_q        <= npc_e1_q;
+    opcode_wb_q     <= opcode_e1_q;
+    operand_ra_wb_q <= operand_ra_e1_q;
+    operand_rb_wb_q <= operand_rb_e1_q;
+    result_wb_q     <= mulr_result_i;
+    exception_wb_q  <= exception_e1_q;
+    csr_wr_wb_q     <= 1'b0;
+    csr_wdata_wb_q  <= 32'b0;
+end
+else if (ctrl_e1_q[`PCINFO_MULP] && mulp_complete_i && valid_e1_q && ~valid_e2_q)
+begin
+    valid_wb_q      <= 1'b1;
+    ctrl_wb_q       <= ctrl_e1_q;
+    pc_wb_q         <= pc_e1_q;
+    npc_wb_q        <= npc_e1_q;
+    opcode_wb_q     <= opcode_e1_q;
+    operand_ra_wb_q <= operand_ra_e1_q;
+    operand_rb_wb_q <= operand_rb_e1_q;
+    result_wb_q     <= mulp_result_i;
+    exception_wb_q  <= exception_e1_q;
+    csr_wr_wb_q     <= 1'b0;
+    csr_wdata_wb_q  <= 32'b0;
+end
+else if (ctrl_e1_q[`PCINFO_MULC] && mulc_complete_i && valid_e1_q && ~valid_e2_q)
+begin
+    valid_wb_q      <= 1'b1;
+    ctrl_wb_q       <= ctrl_e1_q;
+    pc_wb_q         <= pc_e1_q;
+    npc_wb_q        <= npc_e1_q;
+    opcode_wb_q     <= opcode_e1_q;
+    operand_ra_wb_q <= operand_ra_e1_q;
+    operand_rb_wb_q <= operand_rb_e1_q;
+    result_wb_q     <= mulc_result_i;
     exception_wb_q  <= exception_e1_q;
     csr_wr_wb_q     <= 1'b0;
     csr_wdata_wb_q  <= 32'b0;

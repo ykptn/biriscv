@@ -88,8 +88,21 @@ module biriscv_frontend
     ,output          fetch0_instr_csr_o
     ,output          fetch0_instr_rd_valid_o
     ,output          fetch0_instr_invalid_o
-    ,output          fetch0_instr_mule_o      // <--- THIS IS THE FIX
+    ,output          fetch0_instr_mule_o
+    ,output          fetch0_instr_mulen_o
+    ,output          fetch0_instr_mule2_o
+    ,output          fetch0_instr_mule2n_o
+    ,output          fetch0_instr_mule3_o
+    ,output          fetch0_instr_mule3n_o
+    ,output          fetch0_instr_mule5_o
+    ,output          fetch0_instr_mule5n_o
     ,output          fetch0_instr_cbm_o
+    ,output          fetch0_instr_mula_o
+    ,output          fetch0_instr_mulx_o
+    ,output          fetch0_instr_mulb_o
+    ,output          fetch0_instr_mulr_o
+    ,output          fetch0_instr_mulp_o
+    ,output          fetch0_instr_mulc_o
     ,output          fetch1_valid_o
     ,output [ 31:0]  fetch1_instr_o
     ,output [ 31:0]  fetch1_pc_o
@@ -103,8 +116,21 @@ module biriscv_frontend
     ,output          fetch1_instr_csr_o
     ,output          fetch1_instr_rd_valid_o
     ,output          fetch1_instr_invalid_o
-    ,output          fetch1_instr_mule_o      // <--- THIS IS THE FIX
+    ,output          fetch1_instr_mule_o
+    ,output          fetch1_instr_mulen_o
+    ,output          fetch1_instr_mule2_o
+    ,output          fetch1_instr_mule2n_o
+    ,output          fetch1_instr_mule3_o
+    ,output          fetch1_instr_mule3n_o
+    ,output          fetch1_instr_mule5_o
+    ,output          fetch1_instr_mule5n_o
     ,output          fetch1_instr_cbm_o
+    ,output          fetch1_instr_mula_o
+    ,output          fetch1_instr_mulx_o
+    ,output          fetch1_instr_mulb_o
+    ,output          fetch1_instr_mulr_o
+    ,output          fetch1_instr_mulp_o
+    ,output          fetch1_instr_mulc_o
 );
 
 wire           fetch_valid_w;
@@ -194,7 +220,20 @@ u_decode
     ,.fetch_out0_instr_rd_valid_o(fetch0_instr_rd_valid_o)
     ,.fetch_out0_instr_invalid_o(fetch0_instr_invalid_o)
     ,.fetch_out0_instr_mule_o(fetch0_instr_mule_o)
+    ,.fetch_out0_instr_mulen_o(fetch0_instr_mulen_o)
+    ,.fetch_out0_instr_mule2_o(fetch0_instr_mule2_o)
+    ,.fetch_out0_instr_mule2n_o(fetch0_instr_mule2n_o)
+    ,.fetch_out0_instr_mule3_o(fetch0_instr_mule3_o)
+    ,.fetch_out0_instr_mule3n_o(fetch0_instr_mule3n_o)
+    ,.fetch_out0_instr_mule5_o(fetch0_instr_mule5_o)
+    ,.fetch_out0_instr_mule5n_o(fetch0_instr_mule5n_o)
     ,.fetch_out0_instr_cbm_o(fetch0_instr_cbm_o)
+    ,.fetch_out0_instr_mula_o(fetch0_instr_mula_o)
+    ,.fetch_out0_instr_mulx_o(fetch0_instr_mulx_o)
+    ,.fetch_out0_instr_mulb_o(fetch0_instr_mulb_o)
+    ,.fetch_out0_instr_mulr_o(fetch0_instr_mulr_o)
+    ,.fetch_out0_instr_mulp_o(fetch0_instr_mulp_o)
+    ,.fetch_out0_instr_mulc_o(fetch0_instr_mulc_o)
     ,.fetch_out1_valid_o(fetch1_valid_o)
     ,.fetch_out1_instr_o(fetch1_instr_o)
     ,.fetch_out1_pc_o(fetch1_pc_o)
@@ -209,7 +248,20 @@ u_decode
     ,.fetch_out1_instr_rd_valid_o(fetch1_instr_rd_valid_o)
     ,.fetch_out1_instr_invalid_o(fetch1_instr_invalid_o)
     ,.fetch_out1_instr_mule_o(fetch1_instr_mule_o)
+    ,.fetch_out1_instr_mulen_o(fetch1_instr_mulen_o)
+    ,.fetch_out1_instr_mule2_o(fetch1_instr_mule2_o)
+    ,.fetch_out1_instr_mule2n_o(fetch1_instr_mule2n_o)
+    ,.fetch_out1_instr_mule3_o(fetch1_instr_mule3_o)
+    ,.fetch_out1_instr_mule3n_o(fetch1_instr_mule3n_o)
+    ,.fetch_out1_instr_mule5_o(fetch1_instr_mule5_o)
+    ,.fetch_out1_instr_mule5n_o(fetch1_instr_mule5n_o)
     ,.fetch_out1_instr_cbm_o(fetch1_instr_cbm_o)
+    ,.fetch_out1_instr_mula_o(fetch1_instr_mula_o)
+    ,.fetch_out1_instr_mulx_o(fetch1_instr_mulx_o)
+    ,.fetch_out1_instr_mulb_o(fetch1_instr_mulb_o)
+    ,.fetch_out1_instr_mulr_o(fetch1_instr_mulr_o)
+    ,.fetch_out1_instr_mulp_o(fetch1_instr_mulp_o)
+    ,.fetch_out1_instr_mulc_o(fetch1_instr_mulc_o)
 );
 
 

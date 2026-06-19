@@ -235,6 +235,27 @@
 `define INST_MULE_MASK 32'hFE00707F
 `define INST_MULE      32'h0200000B // funct7=1, funct3=0, opcode=custom-0
 
+`define INST_MULEN_MASK 32'hFE00707F
+`define INST_MULEN      32'h1800000B // funct7=12, funct3=0, opcode=custom-0
+
+`define INST_MULE2_MASK 32'hFE00707F
+`define INST_MULE2      32'h1000000B // funct7=8, funct3=0, opcode=custom-0
+
+`define INST_MULE2N_MASK 32'hFE00707F
+`define INST_MULE2N      32'h1A00000B // funct7=13, funct3=0, opcode=custom-0
+
+`define INST_MULE3_MASK 32'hFE00707F
+`define INST_MULE3      32'h1400000B // funct7=10, funct3=0, opcode=custom-0
+
+`define INST_MULE3N_MASK 32'hFE00707F
+`define INST_MULE3N      32'h1C00000B // funct7=14, funct3=0, opcode=custom-0
+
+`define INST_MULE5_MASK 32'hFE00707F
+`define INST_MULE5      32'h1600000B // funct7=11, funct3=0, opcode=custom-0
+
+`define INST_MULE5N_MASK 32'hFE00707F
+`define INST_MULE5N      32'h1E00000B // funct7=15, funct3=0, opcode=custom-0
+
 `define INST_MULA_MASK  32'hFE00707F
 `define INST_MULA       32'h0C00000B // funct7=6, funct3=0, opcode=custom-0
 
