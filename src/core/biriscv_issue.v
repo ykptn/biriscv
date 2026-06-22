@@ -935,15 +935,19 @@ reg div_pending_q;
 reg csr_pending_q;
 reg mule_pending_q;
 reg mulen_pending_q;
+reg mulen_wb_pending_q;
 reg cbm_pending_q;
 wire [4:0] mule_issue_rd_idx_w;
 wire [4:0] mulen_issue_rd_idx_w;
 reg mule2_pending_q;
 reg mule2n_pending_q;
+reg mule2n_wb_pending_q;
 reg mule3_pending_q;
 reg mule3n_pending_q;
+reg mule3n_wb_pending_q;
 reg mule5_pending_q;
 reg mule5n_pending_q;
+reg mule5n_wb_pending_q;
 reg mula_pending_q;
 reg mulx_pending_q;
 reg mulb_pending_q;
@@ -998,19 +1002,27 @@ else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
     mulen_pending_q <= 1'b0;
 else if (mulen_opcode_valid_o)
     mulen_pending_q <= 1'b1;
-else if (writeback_mulen_valid_i)
+else if (mulen_writeback_safe_w)
     mulen_pending_q <= 1'b0;
 
 // Track MULE destination register for scoreboard
 reg [4:0] mule_rd_q;
 reg [4:0] mulen_rd_q;
+reg [4:0] mulen_wb_rd_q;
+reg [31:0] mulen_wb_value_q;
 reg [4:0] cbm_rd_q;
 reg [4:0] mule2_rd_q;
 reg [4:0] mule2n_rd_q;
+reg [4:0] mule2n_wb_rd_q;
+reg [31:0] mule2n_wb_value_q;
 reg [4:0] mule3_rd_q;
 reg [4:0] mule3n_rd_q;
+reg [4:0] mule3n_wb_rd_q;
+reg [31:0] mule3n_wb_value_q;
 reg [4:0] mule5_rd_q;
 reg [4:0] mule5n_rd_q;
+reg [4:0] mule5n_wb_rd_q;
+reg [31:0] mule5n_wb_value_q;
 reg [4:0] mula_rd_q;
 reg [4:0] mulx_rd_q;
 reg [4:0] mulb_rd_q;
@@ -1034,7 +1046,7 @@ else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
     mulen_rd_q <= 5'b0;
 else if (mulen_opcode_valid_o)
     mulen_rd_q <= mulen_issue_rd_idx_w;
-else if (writeback_mulen_valid_i)
+else if (mulen_writeback_safe_w)
     mulen_rd_q <= 5'b0;
 
 always @ (posedge clk_i or posedge rst_i)
@@ -1044,7 +1056,7 @@ else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
     mule2n_pending_q <= 1'b0;
 else if (mule2n_opcode_valid_o)
     mule2n_pending_q <= 1'b1;
-else if (writeback_mule2n_valid_i)
+else if (mule2n_writeback_safe_w)
     mule2n_pending_q <= 1'b0;
 
 always @ (posedge clk_i or posedge rst_i)
@@ -1054,7 +1066,7 @@ else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
     mule2n_rd_q <= 5'b0;
 else if (mule2n_opcode_valid_o)
     mule2n_rd_q <= mule2n_issue_rd_idx_w;
-else if (writeback_mule2n_valid_i)
+else if (mule2n_writeback_safe_w)
     mule2n_rd_q <= 5'b0;
 
 always @ (posedge clk_i or posedge rst_i)
@@ -1104,7 +1116,7 @@ else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
     mule3n_pending_q <= 1'b0;
 else if (mule3n_opcode_valid_o)
     mule3n_pending_q <= 1'b1;
-else if (writeback_mule3n_valid_i)
+else if (mule3n_writeback_safe_w)
     mule3n_pending_q <= 1'b0;
 
 always @ (posedge clk_i or posedge rst_i)
@@ -1114,7 +1126,7 @@ else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
     mule3n_rd_q <= 5'b0;
 else if (mule3n_opcode_valid_o)
     mule3n_rd_q <= mule3n_issue_rd_idx_w;
-else if (writeback_mule3n_valid_i)
+else if (mule3n_writeback_safe_w)
     mule3n_rd_q <= 5'b0;
 
 always @ (posedge clk_i or posedge rst_i)
@@ -1144,7 +1156,7 @@ else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
     mule5n_pending_q <= 1'b0;
 else if (mule5n_opcode_valid_o)
     mule5n_pending_q <= 1'b1;
-else if (writeback_mule5n_valid_i)
+else if (mule5n_writeback_safe_w)
     mule5n_pending_q <= 1'b0;
 
 always @ (posedge clk_i or posedge rst_i)
@@ -1154,8 +1166,113 @@ else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
     mule5n_rd_q <= 5'b0;
 else if (mule5n_opcode_valid_o)
     mule5n_rd_q <= mule5n_issue_rd_idx_w;
-else if (writeback_mule5n_valid_i)
+else if (mule5n_writeback_safe_w)
     mule5n_rd_q <= 5'b0;
+
+// Hold non-blocking multiplier completions until a register-file write port is free.
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+begin
+    mulen_wb_pending_q <= 1'b0;
+    mulen_wb_rd_q      <= 5'b0;
+    mulen_wb_value_q   <= 32'b0;
+end
+else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
+begin
+    mulen_wb_pending_q <= 1'b0;
+    mulen_wb_rd_q      <= 5'b0;
+    mulen_wb_value_q   <= 32'b0;
+end
+else if (mulen_writeback_safe_w)
+begin
+    mulen_wb_pending_q <= 1'b0;
+    mulen_wb_rd_q      <= 5'b0;
+    mulen_wb_value_q   <= 32'b0;
+end
+else if (!mulen_wb_pending_q && writeback_mulen_valid_i)
+begin
+    mulen_wb_pending_q <= 1'b1;
+    mulen_wb_rd_q      <= writeback_mulen_rd_idx_i;
+    mulen_wb_value_q   <= writeback_mulen_value_i;
+end
+
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+begin
+    mule2n_wb_pending_q <= 1'b0;
+    mule2n_wb_rd_q      <= 5'b0;
+    mule2n_wb_value_q   <= 32'b0;
+end
+else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
+begin
+    mule2n_wb_pending_q <= 1'b0;
+    mule2n_wb_rd_q      <= 5'b0;
+    mule2n_wb_value_q   <= 32'b0;
+end
+else if (mule2n_writeback_safe_w)
+begin
+    mule2n_wb_pending_q <= 1'b0;
+    mule2n_wb_rd_q      <= 5'b0;
+    mule2n_wb_value_q   <= 32'b0;
+end
+else if (!mule2n_wb_pending_q && writeback_mule2n_valid_i)
+begin
+    mule2n_wb_pending_q <= 1'b1;
+    mule2n_wb_rd_q      <= writeback_mule2n_rd_idx_i;
+    mule2n_wb_value_q   <= writeback_mule2n_value_i;
+end
+
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+begin
+    mule3n_wb_pending_q <= 1'b0;
+    mule3n_wb_rd_q      <= 5'b0;
+    mule3n_wb_value_q   <= 32'b0;
+end
+else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
+begin
+    mule3n_wb_pending_q <= 1'b0;
+    mule3n_wb_rd_q      <= 5'b0;
+    mule3n_wb_value_q   <= 32'b0;
+end
+else if (mule3n_writeback_safe_w)
+begin
+    mule3n_wb_pending_q <= 1'b0;
+    mule3n_wb_rd_q      <= 5'b0;
+    mule3n_wb_value_q   <= 32'b0;
+end
+else if (!mule3n_wb_pending_q && writeback_mule3n_valid_i)
+begin
+    mule3n_wb_pending_q <= 1'b1;
+    mule3n_wb_rd_q      <= writeback_mule3n_rd_idx_i;
+    mule3n_wb_value_q   <= writeback_mule3n_value_i;
+end
+
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+begin
+    mule5n_wb_pending_q <= 1'b0;
+    mule5n_wb_rd_q      <= 5'b0;
+    mule5n_wb_value_q   <= 32'b0;
+end
+else if (pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w)
+begin
+    mule5n_wb_pending_q <= 1'b0;
+    mule5n_wb_rd_q      <= 5'b0;
+    mule5n_wb_value_q   <= 32'b0;
+end
+else if (mule5n_writeback_safe_w)
+begin
+    mule5n_wb_pending_q <= 1'b0;
+    mule5n_wb_rd_q      <= 5'b0;
+    mule5n_wb_value_q   <= 32'b0;
+end
+else if (!mule5n_wb_pending_q && writeback_mule5n_valid_i)
+begin
+    mule5n_wb_pending_q <= 1'b1;
+    mule5n_wb_rd_q      <= writeback_mule5n_rd_idx_i;
+    mule5n_wb_value_q   <= writeback_mule5n_value_i;
+end
 
 // Single-outstanding custom multiplier tracking.
 always @ (posedge clk_i or posedge rst_i)
@@ -1318,27 +1435,31 @@ reg        pipe1_mux_mule5n_r;
 wire mule_writeback_safe_w = writeback_mule_valid_i &&
                               mule_pending_q &&
                               ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
-wire mulen_writeback_safe_w = writeback_mulen_valid_i &&
-                              mulen_pending_q &&
-                              ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
+wire        mulen_writeback_safe_w;
+wire [4:0]  mulen_wb_src_rd_w    = mulen_wb_pending_q ? mulen_wb_rd_q    : writeback_mulen_rd_idx_i;
+wire [31:0] mulen_wb_src_value_w = mulen_wb_pending_q ? mulen_wb_value_q : writeback_mulen_value_i;
+wire        mulen_wb_src_valid_w = mulen_wb_pending_q | writeback_mulen_valid_i;
 wire mule2_writeback_safe_w = writeback_mule2_valid_i &&
                               mule2_pending_q &&
                               ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
-wire mule2n_writeback_safe_w = writeback_mule2n_valid_i &&
-                              mule2n_pending_q &&
-                              ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
+wire        mule2n_writeback_safe_w;
+wire [4:0]  mule2n_wb_src_rd_w    = mule2n_wb_pending_q ? mule2n_wb_rd_q    : writeback_mule2n_rd_idx_i;
+wire [31:0] mule2n_wb_src_value_w = mule2n_wb_pending_q ? mule2n_wb_value_q : writeback_mule2n_value_i;
+wire        mule2n_wb_src_valid_w = mule2n_wb_pending_q | writeback_mule2n_valid_i;
 wire mule3_writeback_safe_w = writeback_mule3_valid_i &&
                               mule3_pending_q &&
                               ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
-wire mule3n_writeback_safe_w = writeback_mule3n_valid_i &&
-                              mule3n_pending_q &&
-                              ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
+wire        mule3n_writeback_safe_w;
+wire [4:0]  mule3n_wb_src_rd_w    = mule3n_wb_pending_q ? mule3n_wb_rd_q    : writeback_mule3n_rd_idx_i;
+wire [31:0] mule3n_wb_src_value_w = mule3n_wb_pending_q ? mule3n_wb_value_q : writeback_mule3n_value_i;
+wire        mule3n_wb_src_valid_w = mule3n_wb_pending_q | writeback_mule3n_valid_i;
 wire mule5_writeback_safe_w = writeback_mule5_valid_i &&
                               mule5_pending_q &&
                               ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
-wire mule5n_writeback_safe_w = writeback_mule5n_valid_i &&
-                              mule5n_pending_q &&
-                              ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
+wire        mule5n_writeback_safe_w;
+wire [4:0]  mule5n_wb_src_rd_w    = mule5n_wb_pending_q ? mule5n_wb_rd_q    : writeback_mule5n_rd_idx_i;
+wire [31:0] mule5n_wb_src_value_w = mule5n_wb_pending_q ? mule5n_wb_value_q : writeback_mule5n_value_i;
+wire        mule5n_wb_src_valid_w = mule5n_wb_pending_q | writeback_mule5n_valid_i;
 wire cbm_writeback_safe_w  = writeback_cbm_valid_i &&
                               cbm_pending_q &&
                               ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
@@ -1365,25 +1486,25 @@ wire mule_pending_hazard_w = mule_pending_q &&
                               !(mule_writeback_safe_w && (writeback_mule_rd_idx_i == mule_rd_q));
 wire mulen_pending_hazard_w = mulen_pending_q &&
                               mulen_rd_q != 5'b0 &&
-                              !(mulen_writeback_safe_w && (writeback_mulen_rd_idx_i == mulen_rd_q));
+                              !(mulen_writeback_safe_w && (mulen_wb_src_rd_w == mulen_rd_q));
 wire mule2_pending_hazard_w = mule2_pending_q &&
                               mule2_rd_q != 5'b0 &&
                               !(mule2_writeback_safe_w && (writeback_mule2_rd_idx_i == mule2_rd_q));
 wire mule2n_pending_hazard_w = mule2n_pending_q &&
                               mule2n_rd_q != 5'b0 &&
-                              !(mule2n_writeback_safe_w && (writeback_mule2n_rd_idx_i == mule2n_rd_q));
+                              !(mule2n_writeback_safe_w && (mule2n_wb_src_rd_w == mule2n_rd_q));
 wire mule3_pending_hazard_w = mule3_pending_q &&
                               mule3_rd_q != 5'b0 &&
                               !(mule3_writeback_safe_w && (writeback_mule3_rd_idx_i == mule3_rd_q));
 wire mule3n_pending_hazard_w = mule3n_pending_q &&
                               mule3n_rd_q != 5'b0 &&
-                              !(mule3n_writeback_safe_w && (writeback_mule3n_rd_idx_i == mule3n_rd_q));
+                              !(mule3n_writeback_safe_w && (mule3n_wb_src_rd_w == mule3n_rd_q));
 wire mule5_pending_hazard_w = mule5_pending_q &&
                               mule5_rd_q != 5'b0 &&
                               !(mule5_writeback_safe_w && (writeback_mule5_rd_idx_i == mule5_rd_q));
 wire mule5n_pending_hazard_w = mule5n_pending_q &&
                               mule5n_rd_q != 5'b0 &&
-                              !(mule5n_writeback_safe_w && (writeback_mule5n_rd_idx_i == mule5n_rd_q));
+                              !(mule5n_writeback_safe_w && (mule5n_wb_src_rd_w == mule5n_rd_q));
 wire cbm_pending_hazard_w  = cbm_pending_q &&
                               cbm_rd_q != 5'b0 &&
                               !(cbm_writeback_safe_w && (writeback_cbm_rd_idx_i == cbm_rd_q));
@@ -1609,15 +1730,11 @@ wire [31:0] issue_a_rb_value_w;
 wire [31:0] issue_b_ra_value_w;
 wire [31:0] issue_b_rb_value_w;
 
-wire [4:0] pipe0_rd_wb_muxed_w =
+wire [4:0] pipe0_rd_wb_base_w =
     mule_writeback_safe_w  ? writeback_mule_rd_idx_i  :
-    mulen_writeback_safe_w ? writeback_mulen_rd_idx_i :
     mule2_writeback_safe_w ? writeback_mule2_rd_idx_i :
-    mule2n_writeback_safe_w ? writeback_mule2n_rd_idx_i :
     mule3_writeback_safe_w ? writeback_mule3_rd_idx_i :
-    mule3n_writeback_safe_w ? writeback_mule3n_rd_idx_i :
     mule5_writeback_safe_w ? writeback_mule5_rd_idx_i :
-    mule5n_writeback_safe_w ? writeback_mule5n_rd_idx_i :
     cbm_writeback_safe_w   ? writeback_cbm_rd_idx_i   :
     mula_writeback_safe_w  ? writeback_mula_rd_idx_i  :
     mulx_writeback_safe_w  ? writeback_mulx_rd_idx_i  :
@@ -1627,15 +1744,11 @@ wire [4:0] pipe0_rd_wb_muxed_w =
     mulc_writeback_safe_w  ? writeback_mulc_rd_idx_i  :
                               pipe0_rd_wb_w;
 
-wire [31:0] pipe0_result_wb_muxed_w =
+wire [31:0] pipe0_result_wb_base_w =
     mule_writeback_safe_w  ? writeback_mule_value_i  :
-    mulen_writeback_safe_w ? writeback_mulen_value_i :
     mule2_writeback_safe_w ? writeback_mule2_value_i :
-    mule2n_writeback_safe_w ? writeback_mule2n_value_i :
     mule3_writeback_safe_w ? writeback_mule3_value_i :
-    mule3n_writeback_safe_w ? writeback_mule3n_value_i :
     mule5_writeback_safe_w ? writeback_mule5_value_i :
-    mule5n_writeback_safe_w ? writeback_mule5n_value_i :
     cbm_writeback_safe_w   ? writeback_cbm_value_i   :
     mula_writeback_safe_w  ? writeback_mula_value_i  :
     mulx_writeback_safe_w  ? writeback_mulx_value_i  :
@@ -1644,6 +1757,87 @@ wire [31:0] pipe0_result_wb_muxed_w =
     mulp_writeback_safe_w  ? writeback_mulp_value_i  :
     mulc_writeback_safe_w  ? writeback_mulc_value_i  :
                               pipe0_result_wb_w;
+
+wire pipe0_rf_free_w = (pipe0_rd_wb_base_w == 5'b0);
+wire pipe1_rf_free_w = (pipe1_rd_wb_w == 5'b0);
+
+reg rf_p0_mulen_r;
+reg rf_p0_mule2n_r;
+reg rf_p0_mule3n_r;
+reg rf_p0_mule5n_r;
+reg rf_p1_mulen_r;
+reg rf_p1_mule2n_r;
+reg rf_p1_mule3n_r;
+reg rf_p1_mule5n_r;
+
+always @ *
+begin
+    rf_p0_mulen_r  = 1'b0;
+    rf_p0_mule2n_r = 1'b0;
+    rf_p0_mule3n_r = 1'b0;
+    rf_p0_mule5n_r = 1'b0;
+    rf_p1_mulen_r  = 1'b0;
+    rf_p1_mule2n_r = 1'b0;
+    rf_p1_mule3n_r = 1'b0;
+    rf_p1_mule5n_r = 1'b0;
+
+    if (pipe0_rf_free_w)
+    begin
+        if (mulen_wb_src_valid_w)
+            rf_p0_mulen_r = 1'b1;
+        else if (mule2n_wb_src_valid_w)
+            rf_p0_mule2n_r = 1'b1;
+        else if (mule3n_wb_src_valid_w)
+            rf_p0_mule3n_r = 1'b1;
+        else if (mule5n_wb_src_valid_w)
+            rf_p0_mule5n_r = 1'b1;
+    end
+
+    if (pipe1_rf_free_w)
+    begin
+        if (mulen_wb_src_valid_w && !rf_p0_mulen_r)
+            rf_p1_mulen_r = 1'b1;
+        else if (mule2n_wb_src_valid_w && !rf_p0_mule2n_r)
+            rf_p1_mule2n_r = 1'b1;
+        else if (mule3n_wb_src_valid_w && !rf_p0_mule3n_r)
+            rf_p1_mule3n_r = 1'b1;
+        else if (mule5n_wb_src_valid_w && !rf_p0_mule5n_r)
+            rf_p1_mule5n_r = 1'b1;
+    end
+end
+
+assign mulen_writeback_safe_w  = rf_p0_mulen_r  | rf_p1_mulen_r;
+assign mule2n_writeback_safe_w = rf_p0_mule2n_r | rf_p1_mule2n_r;
+assign mule3n_writeback_safe_w = rf_p0_mule3n_r | rf_p1_mule3n_r;
+assign mule5n_writeback_safe_w = rf_p0_mule5n_r | rf_p1_mule5n_r;
+
+wire [4:0] rf_rd0_w =
+    pipe0_rf_free_w ? (rf_p0_mulen_r  ? mulen_wb_src_rd_w  :
+                       rf_p0_mule2n_r ? mule2n_wb_src_rd_w :
+                       rf_p0_mule3n_r ? mule3n_wb_src_rd_w :
+                       rf_p0_mule5n_r ? mule5n_wb_src_rd_w : 5'b0)
+                  : pipe0_rd_wb_base_w;
+
+wire [31:0] rf_result0_w =
+    pipe0_rf_free_w ? (rf_p0_mulen_r  ? mulen_wb_src_value_w  :
+                       rf_p0_mule2n_r ? mule2n_wb_src_value_w :
+                       rf_p0_mule3n_r ? mule3n_wb_src_value_w :
+                       rf_p0_mule5n_r ? mule5n_wb_src_value_w : 32'b0)
+                  : pipe0_result_wb_base_w;
+
+wire [4:0] rf_rd1_w =
+    pipe1_rf_free_w ? (rf_p1_mulen_r  ? mulen_wb_src_rd_w  :
+                       rf_p1_mule2n_r ? mule2n_wb_src_rd_w :
+                       rf_p1_mule3n_r ? mule3n_wb_src_rd_w :
+                       rf_p1_mule5n_r ? mule5n_wb_src_rd_w : 5'b0)
+                  : pipe1_rd_wb_w;
+
+wire [31:0] rf_result1_w =
+    pipe1_rf_free_w ? (rf_p1_mulen_r  ? mulen_wb_src_value_w  :
+                       rf_p1_mule2n_r ? mule2n_wb_src_value_w :
+                       rf_p1_mule3n_r ? mule3n_wb_src_value_w :
+                       rf_p1_mule5n_r ? mule5n_wb_src_value_w : 32'b0)
+                  : pipe1_result_wb_w;
 
 // Register file: 2W4R
 biriscv_regfile
@@ -1657,10 +1851,10 @@ u_regfile
     .rst_i(rst_i),
 
     // Write ports
-    .rd0_i(pipe0_rd_wb_muxed_w),
-    .rd0_value_i(pipe0_result_wb_muxed_w),
-    .rd1_i(pipe1_rd_wb_w),
-    .rd1_value_i(pipe1_result_wb_w),
+    .rd0_i(rf_rd0_w),
+    .rd0_value_i(rf_result0_w),
+    .rd1_i(rf_rd1_w),
+    .rd1_value_i(rf_result1_w),
 
     // Read ports
     .ra0_i(issue_a_ra_idx_w),
@@ -1712,29 +1906,29 @@ begin
     if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_a_rb_idx_w)
         issue_a_rb_value_r = writeback_mule_value_i;
 
-    if (mulen_writeback_safe_w && writeback_mulen_rd_idx_i == issue_a_ra_idx_w)
-        issue_a_ra_value_r = writeback_mulen_value_i;
+    if (mulen_writeback_safe_w && mulen_wb_src_rd_w == issue_a_ra_idx_w)
+        issue_a_ra_value_r = mulen_wb_src_value_w;
 
-    if (mulen_writeback_safe_w && writeback_mulen_rd_idx_i == issue_a_rb_idx_w)
-        issue_a_rb_value_r = writeback_mulen_value_i;
+    if (mulen_writeback_safe_w && mulen_wb_src_rd_w == issue_a_rb_idx_w)
+        issue_a_rb_value_r = mulen_wb_src_value_w;
 
-    if (mule2n_writeback_safe_w && writeback_mule2n_rd_idx_i == issue_a_ra_idx_w)
-        issue_a_ra_value_r = writeback_mule2n_value_i;
+    if (mule2n_writeback_safe_w && mule2n_wb_src_rd_w == issue_a_ra_idx_w)
+        issue_a_ra_value_r = mule2n_wb_src_value_w;
 
-    if (mule2n_writeback_safe_w && writeback_mule2n_rd_idx_i == issue_a_rb_idx_w)
-        issue_a_rb_value_r = writeback_mule2n_value_i;
+    if (mule2n_writeback_safe_w && mule2n_wb_src_rd_w == issue_a_rb_idx_w)
+        issue_a_rb_value_r = mule2n_wb_src_value_w;
 
-    if (mule3n_writeback_safe_w && writeback_mule3n_rd_idx_i == issue_a_ra_idx_w)
-        issue_a_ra_value_r = writeback_mule3n_value_i;
+    if (mule3n_writeback_safe_w && mule3n_wb_src_rd_w == issue_a_ra_idx_w)
+        issue_a_ra_value_r = mule3n_wb_src_value_w;
 
-    if (mule3n_writeback_safe_w && writeback_mule3n_rd_idx_i == issue_a_rb_idx_w)
-        issue_a_rb_value_r = writeback_mule3n_value_i;
+    if (mule3n_writeback_safe_w && mule3n_wb_src_rd_w == issue_a_rb_idx_w)
+        issue_a_rb_value_r = mule3n_wb_src_value_w;
 
-    if (mule5n_writeback_safe_w && writeback_mule5n_rd_idx_i == issue_a_ra_idx_w)
-        issue_a_ra_value_r = writeback_mule5n_value_i;
+    if (mule5n_writeback_safe_w && mule5n_wb_src_rd_w == issue_a_ra_idx_w)
+        issue_a_ra_value_r = mule5n_wb_src_value_w;
 
-    if (mule5n_writeback_safe_w && writeback_mule5n_rd_idx_i == issue_a_rb_idx_w)
-        issue_a_rb_value_r = writeback_mule5n_value_i;
+    if (mule5n_writeback_safe_w && mule5n_wb_src_rd_w == issue_a_rb_idx_w)
+        issue_a_rb_value_r = mule5n_wb_src_value_w;
 
     // Bypass - E2
     if (pipe0_rd_e2_w == issue_a_ra_idx_w)
@@ -1806,29 +2000,29 @@ begin
     if (mule_writeback_safe_w && writeback_mule_rd_idx_i == issue_b_rb_idx_w)
         issue_b_rb_value_r = writeback_mule_value_i;
 
-    if (mulen_writeback_safe_w && writeback_mulen_rd_idx_i == issue_b_ra_idx_w)
-        issue_b_ra_value_r = writeback_mulen_value_i;
+    if (mulen_writeback_safe_w && mulen_wb_src_rd_w == issue_b_ra_idx_w)
+        issue_b_ra_value_r = mulen_wb_src_value_w;
 
-    if (mulen_writeback_safe_w && writeback_mulen_rd_idx_i == issue_b_rb_idx_w)
-        issue_b_rb_value_r = writeback_mulen_value_i;
+    if (mulen_writeback_safe_w && mulen_wb_src_rd_w == issue_b_rb_idx_w)
+        issue_b_rb_value_r = mulen_wb_src_value_w;
 
-    if (mule2n_writeback_safe_w && writeback_mule2n_rd_idx_i == issue_b_ra_idx_w)
-        issue_b_ra_value_r = writeback_mule2n_value_i;
+    if (mule2n_writeback_safe_w && mule2n_wb_src_rd_w == issue_b_ra_idx_w)
+        issue_b_ra_value_r = mule2n_wb_src_value_w;
 
-    if (mule2n_writeback_safe_w && writeback_mule2n_rd_idx_i == issue_b_rb_idx_w)
-        issue_b_rb_value_r = writeback_mule2n_value_i;
+    if (mule2n_writeback_safe_w && mule2n_wb_src_rd_w == issue_b_rb_idx_w)
+        issue_b_rb_value_r = mule2n_wb_src_value_w;
 
-    if (mule3n_writeback_safe_w && writeback_mule3n_rd_idx_i == issue_b_ra_idx_w)
-        issue_b_ra_value_r = writeback_mule3n_value_i;
+    if (mule3n_writeback_safe_w && mule3n_wb_src_rd_w == issue_b_ra_idx_w)
+        issue_b_ra_value_r = mule3n_wb_src_value_w;
 
-    if (mule3n_writeback_safe_w && writeback_mule3n_rd_idx_i == issue_b_rb_idx_w)
-        issue_b_rb_value_r = writeback_mule3n_value_i;
+    if (mule3n_writeback_safe_w && mule3n_wb_src_rd_w == issue_b_rb_idx_w)
+        issue_b_rb_value_r = mule3n_wb_src_value_w;
 
-    if (mule5n_writeback_safe_w && writeback_mule5n_rd_idx_i == issue_b_ra_idx_w)
-        issue_b_ra_value_r = writeback_mule5n_value_i;
+    if (mule5n_writeback_safe_w && mule5n_wb_src_rd_w == issue_b_ra_idx_w)
+        issue_b_ra_value_r = mule5n_wb_src_value_w;
 
-    if (mule5n_writeback_safe_w && writeback_mule5n_rd_idx_i == issue_b_rb_idx_w)
-        issue_b_rb_value_r = writeback_mule5n_value_i;
+    if (mule5n_writeback_safe_w && mule5n_wb_src_rd_w == issue_b_rb_idx_w)
+        issue_b_rb_value_r = mule5n_wb_src_value_w;
 
     // Bypass - E2
     if (pipe0_rd_e2_w == issue_b_ra_idx_w)

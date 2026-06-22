@@ -24,7 +24,7 @@ fail_loop:
 
 .align 4
 main:
-    # Use an operand pair that exercises all three folded CT3 chunks.
+    # Use operands that exercise all three CT3 folded chunks.
     li   x10, 0x00400801
     li   x11, 0x00E00C03
 
@@ -39,9 +39,11 @@ main:
     .insn r 0x0B, 0x0, 0x0E, x12, x10, x11
 
     # Independent ALU work must keep moving while MULE3N is pending.
-    addi x15, x14, 3
-    xori x16, x15, 7
-    addi x17, x16, 1
+    addi x15, x0, 8
+    addi x16, x0, 15
+    addi x17, x0, 16
+    addi x19, x0, 1
+    addi x20, x0, 2
 
     # Give MULE3N enough time to complete before final compare.
     nop

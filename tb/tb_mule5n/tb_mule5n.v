@@ -41,6 +41,9 @@ reg        mule5n_seen;
 reg        mule5n_writeback_seen;
 reg        progress_before_writeback;
 reg        pipe1_issue_seen;
+reg        wb_collision_seen;
+reg [4:0]  wb_collision_rd;
+reg [31:0] wb_collision_value;
 
 wire [31:0] reg_r12_w = u_dut.u_issue.u_regfile.REGFILE.reg_r12_q;
 wire [31:0] reg_r13_w = u_dut.u_issue.u_regfile.REGFILE.reg_r13_q;
@@ -48,6 +51,47 @@ wire [31:0] reg_r14_w = u_dut.u_issue.u_regfile.REGFILE.reg_r14_q;
 wire [31:0] reg_r15_w = u_dut.u_issue.u_regfile.REGFILE.reg_r15_q;
 wire [31:0] reg_r16_w = u_dut.u_issue.u_regfile.REGFILE.reg_r16_q;
 wire [31:0] reg_r17_w = u_dut.u_issue.u_regfile.REGFILE.reg_r17_q;
+
+function [31:0] reg_value_by_idx;
+    input [4:0] idx;
+begin
+    case (idx)
+    5'd0:  reg_value_by_idx = 32'd0;
+    5'd1:  reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r1_q;
+    5'd2:  reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r2_q;
+    5'd3:  reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r3_q;
+    5'd4:  reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r4_q;
+    5'd5:  reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r5_q;
+    5'd6:  reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r6_q;
+    5'd7:  reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r7_q;
+    5'd8:  reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r8_q;
+    5'd9:  reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r9_q;
+    5'd10: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r10_q;
+    5'd11: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r11_q;
+    5'd12: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r12_q;
+    5'd13: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r13_q;
+    5'd14: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r14_q;
+    5'd15: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r15_q;
+    5'd16: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r16_q;
+    5'd17: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r17_q;
+    5'd18: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r18_q;
+    5'd19: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r19_q;
+    5'd20: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r20_q;
+    5'd21: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r21_q;
+    5'd22: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r22_q;
+    5'd23: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r23_q;
+    5'd24: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r24_q;
+    5'd25: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r25_q;
+    5'd26: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r26_q;
+    5'd27: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r27_q;
+    5'd28: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r28_q;
+    5'd29: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r29_q;
+    5'd30: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r30_q;
+    5'd31: reg_value_by_idx = u_dut.u_issue.u_regfile.REGFILE.reg_r31_q;
+    default: reg_value_by_idx = 32'hx;
+    endcase
+end
+endfunction
 
 initial begin
     last_pc = 32'h0;
@@ -58,6 +102,9 @@ initial begin
     mule5n_writeback_seen = 1'b0;
     progress_before_writeback = 1'b0;
     pipe1_issue_seen = 1'b0;
+    wb_collision_seen = 1'b0;
+    wb_collision_rd = 5'd0;
+    wb_collision_value = 32'd0;
 end
 
 always @(posedge clk) begin
@@ -70,6 +117,9 @@ always @(posedge clk) begin
         mule5n_writeback_seen <= 1'b0;
         progress_before_writeback <= 1'b0;
         pipe1_issue_seen <= 1'b0;
+        wb_collision_seen <= 1'b0;
+        wb_collision_rd <= 5'd0;
+        wb_collision_value <= 32'd0;
     end else begin
         cycle_count <= cycle_count + 1;
 
@@ -97,6 +147,20 @@ always @(posedge clk) begin
                      u_dut.writeback_mule5n_value_w);
         end
 
+        if (!wb_collision_seen &&
+            u_dut.writeback_mule5n_valid_w &&
+            (u_dut.u_issue.pipe0_rd_wb_base_w != 5'd0)) begin
+            wb_collision_seen <= 1'b1;
+            wb_collision_rd <= u_dut.u_issue.pipe0_rd_wb_base_w;
+            wb_collision_value <= u_dut.u_issue.pipe0_result_wb_base_w;
+            $display("[Cycle %0d] MULE5N WB COLLISION: custom rd=%0d value=%0d, pipe0 rd=%0d value=%0d",
+                     cycle_count,
+                     u_dut.writeback_mule5n_rd_idx_w,
+                     u_dut.writeback_mule5n_value_w,
+                     u_dut.u_issue.pipe0_rd_wb_base_w,
+                     u_dut.u_issue.pipe0_result_wb_base_w);
+        end
+
         if (mem_i_pc_w != last_pc) begin
             last_pc <= mem_i_pc_w;
 
@@ -105,26 +169,30 @@ always @(posedge clk) begin
                     (reg_r16_w == 32'd15) &&
                     (reg_r17_w == 32'd16) &&
                     progress_before_writeback &&
-                    pipe1_issue_seen) begin
+                    pipe1_issue_seen &&
+                    wb_collision_seen &&
+                    (reg_value_by_idx(wb_collision_rd) == wb_collision_value)) begin
                     pass_reported <= 1'b1;
                     $display("\n*** MULE5N TEST PASSED! ***");
-                    $display("Cycle %0d reached 0x%08h. MULE5N x12 = %0d, MUL x13 = %0d, progress_before_writeback = %0d, pipe1_issue_seen = %0d",
-                             cycle_count, PASS_PC, reg_r12_w, reg_r13_w, progress_before_writeback, pipe1_issue_seen);
+                    $display("Cycle %0d reached 0x%08h. MULE5N x12 = %0d, MUL x13 = %0d, progress_before_writeback = %0d, pipe1_issue_seen = %0d, collision_rd = x%0d",
+                             cycle_count, PASS_PC, reg_r12_w, reg_r13_w, progress_before_writeback, pipe1_issue_seen, wb_collision_rd);
                     $finish;
                 end else begin
                     fail_reported <= 1'b1;
                     $display("\n*** MULE5N TEST FAILED! ***");
-                    $display("PASS loop reached with bad state: x12=%0d x13=%0d x14=%0d x15=%0d x16=%0d x17=%0d progress=%0d pipe1=%0d",
+                    $display("PASS loop reached with bad state: x12=%0d x13=%0d x14=%0d x15=%0d x16=%0d x17=%0d progress=%0d pipe1=%0d collision=%0d collision_rd=x%0d collision_reg=%0d expected=%0d",
                              reg_r12_w, reg_r13_w, reg_r14_w, reg_r15_w, reg_r16_w, reg_r17_w,
-                             progress_before_writeback, pipe1_issue_seen);
+                             progress_before_writeback, pipe1_issue_seen, wb_collision_seen, wb_collision_rd,
+                             reg_value_by_idx(wb_collision_rd), wb_collision_value);
                     $finish;
                 end
             end else if (mem_i_pc_w == FAIL_PC && !fail_reported) begin
                 fail_reported <= 1'b1;
                 $display("\n*** MULE5N TEST FAILED! ***");
-                $display("Reached fail loop: x12=%0d x13=%0d x14=%0d x15=%0d x16=%0d x17=%0d progress=%0d pipe1=%0d",
+                $display("Reached fail loop: x12=%0d x13=%0d x14=%0d x15=%0d x16=%0d x17=%0d progress=%0d pipe1=%0d collision=%0d collision_rd=x%0d collision_reg=%0d expected=%0d",
                          reg_r12_w, reg_r13_w, reg_r14_w, reg_r15_w, reg_r16_w, reg_r17_w,
-                         progress_before_writeback, pipe1_issue_seen);
+                         progress_before_writeback, pipe1_issue_seen, wb_collision_seen, wb_collision_rd,
+                         reg_value_by_idx(wb_collision_rd), wb_collision_value);
                 $finish;
             end
         end
