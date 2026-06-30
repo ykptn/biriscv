@@ -48,7 +48,7 @@ module riscv_core
     ,parameter BHT_ENABLE       = 1
     ,parameter NUM_RAS_ENTRIES  = 8
     ,parameter NUM_RAS_ENTRIES_W = 3
-    ,parameter SUPPORT_MULE3N   = 0
+    ,parameter SUPPORT_MULE3N   = 1
     ,parameter SUPPORT_MULE5N   = 0
 )
 //-----------------------------------------------------------------
