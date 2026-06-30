@@ -954,6 +954,10 @@ reg mulb_pending_q;
 reg mulr_pending_q;
 reg mulp_pending_q;
 reg mulc_pending_q;
+wire        mulen_writeback_safe_w;
+wire        mule2n_writeback_safe_w;
+wire        mule3n_writeback_safe_w;
+wire        mule5n_writeback_safe_w;
 wire [4:0] mule2_issue_rd_idx_w;
 wire [4:0] mule2n_issue_rd_idx_w;
 wire [4:0] mule3_issue_rd_idx_w;
@@ -1435,28 +1439,24 @@ reg        pipe1_mux_mule5n_r;
 wire mule_writeback_safe_w = writeback_mule_valid_i &&
                               mule_pending_q &&
                               ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
-wire        mulen_writeback_safe_w;
 wire [4:0]  mulen_wb_src_rd_w    = mulen_wb_pending_q ? mulen_wb_rd_q    : writeback_mulen_rd_idx_i;
 wire [31:0] mulen_wb_src_value_w = mulen_wb_pending_q ? mulen_wb_value_q : writeback_mulen_value_i;
 wire        mulen_wb_src_valid_w = mulen_wb_pending_q | writeback_mulen_valid_i;
 wire mule2_writeback_safe_w = writeback_mule2_valid_i &&
                               mule2_pending_q &&
                               ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
-wire        mule2n_writeback_safe_w;
 wire [4:0]  mule2n_wb_src_rd_w    = mule2n_wb_pending_q ? mule2n_wb_rd_q    : writeback_mule2n_rd_idx_i;
 wire [31:0] mule2n_wb_src_value_w = mule2n_wb_pending_q ? mule2n_wb_value_q : writeback_mule2n_value_i;
 wire        mule2n_wb_src_valid_w = mule2n_wb_pending_q | writeback_mule2n_valid_i;
 wire mule3_writeback_safe_w = writeback_mule3_valid_i &&
                               mule3_pending_q &&
                               ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
-wire        mule3n_writeback_safe_w;
 wire [4:0]  mule3n_wb_src_rd_w    = mule3n_wb_pending_q ? mule3n_wb_rd_q    : writeback_mule3n_rd_idx_i;
 wire [31:0] mule3n_wb_src_value_w = mule3n_wb_pending_q ? mule3n_wb_value_q : writeback_mule3n_value_i;
 wire        mule3n_wb_src_valid_w = mule3n_wb_pending_q | writeback_mule3n_valid_i;
 wire mule5_writeback_safe_w = writeback_mule5_valid_i &&
                               mule5_pending_q &&
                               ~(pipe0_squash_e1_e2_w || pipe1_squash_e1_e2_w);
-wire        mule5n_writeback_safe_w;
 wire [4:0]  mule5n_wb_src_rd_w    = mule5n_wb_pending_q ? mule5n_wb_rd_q    : writeback_mule5n_rd_idx_i;
 wire [31:0] mule5n_wb_src_value_w = mule5n_wb_pending_q ? mule5n_wb_value_q : writeback_mule5n_value_i;
 wire        mule5n_wb_src_valid_w = mule5n_wb_pending_q | writeback_mule5n_valid_i;
